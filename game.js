@@ -184,6 +184,15 @@ function getPieceMoves(board, r, c, playerOwner) {
   for (const [dr, dc] of dirs) {
     const nr = r + dr, nc = c + dc;
     if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+
+    // 营位被占用时，豹不能沿中央方格对角线穿过大本营。
+    const crossesOccupiedCamp = piece.type === 'leopard'
+      && dr !== 0 && dc !== 0
+      && isCampEntrance(r, c) && isCampEntrance(nr, nc)
+      && r + nr === 3 && c + nc === 3
+      && campPieceCount(board) > 0;
+    if (crossesOccupiedCamp) continue;
+
     const target = board[nr][nc];
     if (!target) {
       moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: null, outcome: 'move' });
