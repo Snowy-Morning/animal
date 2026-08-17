@@ -24,7 +24,7 @@ import {
 // 导入 AI 动作选择函数。
 import { findBestMove } from './game/ai';
 
-// 定义棋子的 Unicode 图标。
+// 定义棋子的 Emoji 图标。
 const icons: Record<string, string> = {
   elephant: '🐘',
   lion: '🦁',
@@ -541,7 +541,7 @@ function alive(owner: Owner): number {
           <div class="piece-inner">
             <div class="piece-face back"></div>
             <div class="piece-face front">
-              <span class="piece-icon">{{ icons[state.board.camp.type] }}</span>
+              <span class="piece-icon" v-html="icons[state.board.camp.type]"></span>
               <span class="piece-name">{{ PIECE_TYPES[state.board.camp.type].char }}</span>
             </div>
           </div>
