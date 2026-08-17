@@ -289,16 +289,42 @@ body {
   box-shadow: 0 4px 10px rgba(0,0,0,0.35);
 }
 .piece-face.front {
-  background: radial-gradient(circle at 32% 28%, #fff8e7 0%, var(--piece-fill) 55%, #d9c49a 100%);
+  position: absolute;
+  background: radial-gradient(circle at 32% 28%, #fffdf6 0%, var(--piece-fill) 62%, #d9c49a 100%);
   border: 3px solid var(--wood-border);
   color: var(--ink);
-  font-family: 'Ma Shan Zheng', 'STKaiti', serif;
-  font-size: calc(var(--cell-size) * 0.24);  /* 字体随格子等比例缩放 */
-  font-weight: bold;
   transform: rotateY(180deg);
+  overflow: hidden;
 }
-.piece.owner-1 .front { color: var(--red); border-color: var(--red); }
-.piece.owner-2 .front { color: var(--black); border-color: var(--black); }
+.piece-icon {
+  position: relative;
+  z-index: 1;
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif;
+  font-size: calc(var(--cell-size) * 0.32);
+  line-height: 1;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,0.16));
+}
+.piece-name {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Ma Shan Zheng', 'STKaiti', serif;
+  font-size: calc(var(--cell-size) * 0.42);
+  font-weight: bold;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.16;
+}
+.piece.owner-1 .front {
+  color: var(--red);
+  border-color: var(--red);
+  background: radial-gradient(circle at 32% 28%, #fffaf7 0%, #f5ded6 62%, #d9b4a8 100%);
+}
+.piece.owner-2 .front {
+  color: var(--black);
+  border-color: var(--black);
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #e7e5e3 62%, #c4c1c5 100%);
+}
 
 .piece-face.back {
   background:
@@ -471,8 +497,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Ma Shan Zheng', serif;
-  font-size: 15px;
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif;
+  font-size: 16px;
   border: 1.5px solid;
   opacity: 0.75;
 }

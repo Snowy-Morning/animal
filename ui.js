@@ -6,6 +6,17 @@
 
 const pieceElements = new Map();
 
+const PIECE_ICONS = Object.freeze({
+  elephant: '🐘',
+  lion: '🦁',
+  tiger: '🐯',
+  leopard: '🐆',
+  wolf: '🐺',
+  dog: '🐕',
+  cat: '🐈',
+  rat: '🐀',
+});
+
 const $ = (id) => document.getElementById(id);
 const boardEl = $('board');
 
@@ -81,7 +92,16 @@ function createPieceElement(piece, r, c, inCamp = false) {
   back.className = 'piece-face back';
   const front = document.createElement('div');
   front.className = 'piece-face front';
-  front.textContent = PIECE_TYPES[piece.type].char;
+  const icon = document.createElement('span');
+  icon.className = 'piece-icon';
+  icon.textContent = PIECE_ICONS[piece.type];
+  icon.setAttribute('aria-hidden', 'true');
+  const name = document.createElement('span');
+  name.className = 'piece-name';
+  name.textContent = PIECE_TYPES[piece.type].char;
+  front.setAttribute('aria-label', PIECE_TYPES[piece.type].char);
+  front.appendChild(icon);
+  front.appendChild(name);
   inner.appendChild(back);
   inner.appendChild(front);
   el.appendChild(inner);
@@ -424,7 +444,9 @@ function renderCaptured(owner) {
   for (const piece of state.captured[owner]) {
     const cap = document.createElement('div');
     cap.className = 'cap-piece ' + (owner === 1 ? 'red' : 'black');
-    cap.textContent = PIECE_TYPES[piece.type].char;
+    cap.textContent = PIECE_ICONS[piece.type];
+    cap.title = PIECE_TYPES[piece.type].char;
+    cap.setAttribute('aria-label', PIECE_TYPES[piece.type].char);
     el.appendChild(cap);
   }
 }
