@@ -67,11 +67,7 @@ function startGame(): void {
 
 // 返回开始菜单并清理 AI 状态。
 function menu(): void {
-  if (socket) {
-    socket.send(JSON.stringify({ type: 'leave_room' }));
-    socket.close();
-    socket = null;
-  }
+  closeRoomConnection();
   state.value = null;
   roomState.value = null;
   playerId.value = null;
@@ -79,6 +75,23 @@ function menu(): void {
   undoRequestPending.value = false;
   incomingUndoRequest.value = false;
   aiThinking.value = false;
+}
+
+// 通知服务端离开房间并关闭当前连接。
+function closeRoomConnection(): void {
+  if (!socket) {
+    return;
+  }
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'leave_room' }));
+  }
+  socket.close();
+  socket = null;
+}
+
+// 主动退出联机房间并回到菜单。
+function leaveRoom(): void {
+  menu();
 }
 
 // 按当前规则重新开始游戏。
@@ -391,6 +404,12 @@ function joinRoom(): void {
   else roomError.value = '请输入 6 位房间号';
 }
 
+// 清空待加入的房间号和关联错误提示。
+function clearRoomId(): void {
+  roomIdInput.value = '';
+  roomError.value = '';
+}
+
 // 由房主向服务端发送开始联机对局请求。
 function startNetworkGame(): void {
   if (socket?.readyState !== WebSocket.OPEN) {
@@ -440,7 +459,10 @@ function alive(owner: Owner): number {
         <div v-if="!roomState" class="lan-actions">
           <button class="btn" @click="connectRoom('create_room')">创建房间</button>
           <div class="join-row">
-            <input v-model="roomIdInput" class="room-input" maxlength="6" inputmode="numeric" placeholder="输入 6 位房间号">
+            <div class="room-input-wrap">
+              <input v-model="roomIdInput" class="room-input" maxlength="6" inputmode="numeric" placeholder="输入 6 位房间号">
+              <button v-if="roomIdInput" class="clear-room-input" type="button" aria-label="清空房间号" title="清空房间号" @click="clearRoomId">×</button>
+            </div>
             <button class="btn" @click="joinRoom">加入房间</button>
           </div>
         </div>
@@ -449,6 +471,7 @@ function alive(owner: Owner): number {
           <p>{{ roomState.playerCount }}/2 位玩家已进入</p>
           <button v-if="roomState.status === 'ready' && playerId === 0" class="btn btn-primary" @click="startNetworkGame">开始对局</button>
           <p v-else>等待{{ roomState.status === 'waiting' ? '另一位玩家加入' : '房主开始对局' }}</p>
+          <button class="btn" @click="leaveRoom">退出房间</button>
         </div>
         <p v-if="roomError" class="room-error">{{ roomError }}</p>
       </div>
@@ -597,7 +620,8 @@ function alive(owner: Owner): number {
         >请求悔棋</button>
         <button v-else class="btn" @click="undo">悔棋</button>
         <button class="btn" @click="restart">重开</button>
-        <button class="btn" @click="menu">返回菜单</button>
+        <button v-if="mode === 'lan'" class="btn" @click="leaveRoom">退出房间</button>
+        <button v-else class="btn" @click="menu">返回菜单</button>
       </div>
     </aside>
   </main>

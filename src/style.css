@@ -173,22 +173,69 @@ body {
 }
 .join-row {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
-.room-input {
+.room-input-wrap {
+  position: relative;
   min-width: 0;
   flex: 1;
-  border: 1.5px solid var(--wood-dark);
+  height: 44px;
+}
+.lan-actions > .btn,
+.join-row .btn,
+.room-input {
+  box-sizing: border-box;
+  height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.room-input {
+  width: 100%;
+  border: 2px solid var(--wood-border);
   border-radius: 8px;
-  padding: 9px 10px;
+  outline: none;
+  padding: 0 38px 0 12px;
+  background: #fffdf7;
+  color: var(--ink);
   font: inherit;
   text-align: center;
   letter-spacing: 3px;
 }
-.room-status, .room-error {
+.room-input:focus {
+  border-color: var(--red);
+}
+.clear-room-input {
+  position: absolute;
+  top: 11px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ded4c3;
+  color: var(--ink);
+  cursor: pointer;
+  font: 18px/22px sans-serif;
+}
+.clear-room-input:hover {
+  background: var(--wood-border);
+  color: #fff;
+}
+.room-status {
+  display: grid;
+  gap: 8px;
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
+}
+.room-status p,
+.room-error {
+  margin: 0;
 }
 .room-error {
   color: var(--red);
