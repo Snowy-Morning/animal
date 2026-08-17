@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 导入 Vue 响应式 API。
 import { computed, ref } from 'vue';
+import type { RoomState, ServerMessage } from './network/protocol';
 
 // 导入规则函数、常量和状态类型。
 import {
@@ -16,6 +17,7 @@ import {
   type GameState,
   type MoveAction,
   type Owner,
+  type Board,
   type Piece,
 } from './game/rules';
 
@@ -35,8 +37,13 @@ const icons: Record<string, string> = {
 };
 
 // 保存菜单中的对战模式、吃鼠规则和 AI 难度。
-const mode = ref<'pvp' | 'pve'>('pvp');
+const mode = ref<'pvp' | 'pve' | 'lan'>('pvp');
 const catOnly = ref(true);
+const roomIdInput = ref('');
+const roomState = ref<RoomState | null>(null);
+const roomError = ref('');
+const playerId = ref<0 | 1 | null>(null);
+let socket: WebSocket | null = null;
 const difficulty = ref(2);
 
 // 保存当前游戏状态。
@@ -48,7 +55,7 @@ const aiThinking = ref(false);
 
 // 根据菜单配置开始一局新游戏。
 function startGame(): void {
-  state.value = createState(mode.value, 1, difficulty.value, catOnly.value);
+  state.value = createState(mode.value === 'pve' ? 'pve' : 'pvp', 1, difficulty.value, catOnly.value);
   animating.value = false;
   aiThinking.value = false;
   if (state.value.mode === 'pve' && state.value.currentPlayerId === state.value.aiPlayerId) {
@@ -58,12 +65,24 @@ function startGame(): void {
 
 // 返回开始菜单并清理 AI 状态。
 function menu(): void {
+  if (socket) {
+    socket.send(JSON.stringify({ type: 'leave_room' }));
+    socket.close();
+    socket = null;
+  }
   state.value = null;
+  roomState.value = null;
+  playerId.value = null;
+  roomError.value = '';
   aiThinking.value = false;
 }
 
 // 按当前规则重新开始游戏。
 function restart(): void {
+  if (mode.value === 'lan') {
+    menu();
+    return;
+  }
   if (state.value) {
     const current = state.value;
     state.value = createState(
@@ -163,9 +182,24 @@ function clickCell(r: number, c: number): void {
   }
 }
 
+// 将联机动作交由服务端校验和执行。
+function sendNetworkAction(action: Action): void {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    roomError.value = '联机服务端连接已断开';
+    return;
+  }
+  socket.send(JSON.stringify({ type: 'action', action }));
+}
+
 // 执行动作、记录历史并安排下一回合。
 function execute(action: Action): void {
   if (!state.value) {
+    return;
+  }
+  if (mode.value === 'lan') {
+    state.value.selected = null;
+    state.value.validMoves = [];
+    sendNetworkAction(action);
     return;
   }
   const game = state.value;
@@ -230,6 +264,9 @@ async function triggerAI(): Promise<void> {
 
 // 撤销最近的一步，PVE 模式下同时撤销双方动作。
 function undo(): void {
+  if (mode.value === 'lan') {
+    return;
+  }
   if (!state.value || animating.value || aiThinking.value || !state.value.history.length) {
     return;
   }
@@ -258,6 +295,54 @@ function undo(): void {
   }
   state.value.selected = null;
   state.value.validMoves = [];
+}
+
+function hydrate(room: RoomState): void {
+  if (!room.gameState) return;
+  const remote = room.gameState;
+  const board = remote.board.cells.map((row) => row.map((piece) => (piece ? { ...piece } : null))) as Board;
+  board.camp = remote.board.camp ? { ...remote.board.camp } : null;
+  board.catOnlyCanCaptureRat = remote.board.catOnlyCanCaptureRat;
+  state.value = {
+    ...remote,
+    board,
+    history: [],
+    selected: null,
+    validMoves: [],
+  };
+}
+
+function connectRoom(type: 'create_room' | 'join_room'): void {
+  roomError.value = '';
+  socket?.close();
+  socket = new WebSocket(`ws://${location.hostname}:3000`);
+  socket.onopen = () => {
+    const message = type === 'create_room'
+      ? { type, catOnlyCanCaptureRat: catOnly.value }
+      : { type, roomId: roomIdInput.value.trim() };
+    socket?.send(JSON.stringify(message));
+  };
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data) as ServerMessage;
+    if (message.type === 'room_created' || message.type === 'room_joined') {
+      playerId.value = message.playerId;
+      roomIdInput.value = message.roomId;
+    } else if (message.type === 'room_state' || message.type === 'game_started') {
+      roomState.value = message.state;
+      hydrate(message.state);
+    } else if (message.type === 'error') {
+      roomError.value = message.message;
+    } else if (message.type === 'player_left') {
+      roomError.value = '另一位玩家已离开';
+      state.value = null;
+    }
+  };
+  socket.onerror = () => { roomError.value = '无法连接联机服务端'; };
+}
+
+function joinRoom(): void {
+  if (roomIdInput.value.trim().length === 6) connectRoom('join_room');
+  else roomError.value = '请输入 6 位房间号';
 }
 
 // 判断某个位置是否为当前移动提示点。
@@ -289,7 +374,28 @@ function alive(owner: Owner): number {
         <div class="options">
           <label class="radio"><input v-model="mode" type="radio" value="pvp">本地双人对战</label>
           <label class="radio"><input v-model="mode" type="radio" value="pve">人机对战</label>
+          <label class="radio"><input v-model="mode" type="radio" value="lan">局域网联机</label>
         </div>
+      </div>
+
+      <!-- 局域网房间操作。 -->
+      <div v-if="mode === 'lan'" class="option-group lan-options">
+        <div class="option-label">局域网房间</div>
+        <p class="lan-note">请先在一台电脑上启动联机服务端。</p>
+        <div v-if="!roomState" class="lan-actions">
+          <button class="btn" @click="connectRoom('create_room')">创建房间</button>
+          <div class="join-row">
+            <input v-model="roomIdInput" class="room-input" maxlength="6" inputmode="numeric" placeholder="输入 6 位房间号">
+            <button class="btn" @click="joinRoom">加入房间</button>
+          </div>
+        </div>
+        <div v-else class="room-status">
+          <p>房间号：<b>{{ roomIdInput }}</b></p>
+          <p>{{ roomState.playerCount }}/2 位玩家已进入</p>
+          <button v-if="roomState.status === 'ready' && playerId === 0" class="btn btn-primary" @click="socket?.send(JSON.stringify({ type: 'start_game' }))">开始对局</button>
+          <p v-else>等待{{ roomState.status === 'waiting' ? '另一位玩家加入' : '房主开始对局' }}</p>
+        </div>
+        <p v-if="roomError" class="room-error">{{ roomError }}</p>
       </div>
 
       <!-- 吃鼠规则选择。 -->
@@ -312,8 +418,8 @@ function alive(owner: Owner): number {
         </div>
       </div>
 
-      <!-- 开始游戏和规则说明。 -->
-      <button class="btn btn-primary" @click="startGame">开始对局</button>
+      <!-- 本地模式开始游戏和规则说明。 -->
+      <button v-if="mode !== 'lan'" class="btn btn-primary" @click="startGame">开始对局</button>
       <details class="rules">
         <summary>查看游戏规则</summary>
         <div class="rules-content">
@@ -427,7 +533,7 @@ function alive(owner: Owner): number {
 
       <!-- 游戏操作按钮。 -->
       <div class="btn-group">
-        <button class="btn" @click="undo">悔棋</button>
+        <button v-if="mode !== 'lan'" class="btn" @click="undo">悔棋</button>
         <button class="btn" @click="restart">重开</button>
         <button class="btn" @click="menu">返回菜单</button>
       </div>

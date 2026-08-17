@@ -4,5 +4,5 @@
     "strict": true, "jsx": "preserve", "resolveJsonModule": true, "esModuleInterop": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"], "skipLibCheck": true, "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "server/**/*.ts", "vite.config.ts"]
 }

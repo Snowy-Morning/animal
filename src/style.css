@@ -155,6 +155,44 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   color: #fff;
 }
+.lan-room,
+.lan-options {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+.lan-note {
+  margin: 0;
+  color: var(--wood-border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.lan-actions {
+  display: grid;
+  gap: 8px;
+}
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+.room-input {
+  min-width: 0;
+  flex: 1;
+  border: 1.5px solid var(--wood-dark);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  text-align: center;
+  letter-spacing: 3px;
+}
+.room-status, .room-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.room-error {
+  color: var(--red);
+}
 .btn-primary {
   background: var(--red);
   color: #fff;

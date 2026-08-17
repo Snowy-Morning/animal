@@ -1,0 +1,164 @@
+import { randomInt } from 'node:crypto';
+import { WebSocketServer, type WebSocket } from 'ws';
+import {
+  afterAction,
+  applyAction,
+  createState,
+  getAllLegalActions,
+  getPieceMoves,
+  type Action,
+  type GameState,
+  type Owner,
+} from '../src/game/rules';
+import type { ClientMessage, RoomState, SerializedGameState, ServerMessage } from '../src/network/protocol';
+
+type Room = {
+  id: string;
+  catOnlyCanCaptureRat: boolean;
+  clients: [WebSocket | null, WebSocket | null];
+  state: GameState | null;
+};
+
+const rooms = new Map<string, Room>();
+const clients = new Map<WebSocket, { room: Room; playerId: 0 | 1 }>();
+const wss = new WebSocketServer({ host: '0.0.0.0', port: 3000 });
+
+function send(socket: WebSocket, message: ServerMessage): void {
+  if (socket.readyState === socket.OPEN) {
+    socket.send(JSON.stringify(message));
+  }
+}
+
+function roomId(): string {
+  let id = '';
+  do {
+    id = String(randomInt(100000, 1000000));
+  } while (rooms.has(id));
+  return id;
+}
+
+function serializeState(game: GameState): SerializedGameState {
+  return {
+    board: {
+      cells: game.board.map((row) => row.map((piece) => (piece ? { ...piece } : null))),
+      camp: game.board.camp ? { ...game.board.camp } : null,
+      catOnlyCanCaptureRat: game.board.catOnlyCanCaptureRat !== false,
+    },
+    playerOwners: game.playerOwners,
+    currentPlayerId: game.currentPlayerId,
+    mode: game.mode,
+    aiPlayerId: game.aiPlayerId,
+    aiDepth: game.aiDepth,
+    catOnlyCanCaptureRat: game.catOnlyCanCaptureRat,
+    turnCount: game.turnCount,
+    captured: game.captured,
+    gameOver: game.gameOver,
+    winner: game.winner,
+    lastRevealedOwner: game.lastRevealedOwner,
+  };
+}
+
+function broadcast(room: Room, type: 'room_state' | 'game_started'): void {
+  const status = room.state ? (room.state.gameOver ? 'finished' : 'playing') : room.clients[1] ? 'ready' : 'waiting';
+  room.clients.forEach((socket, playerId) => {
+    if (!socket) return;
+    const state: RoomState = {
+      roomId: room.id,
+      playerCount: room.clients.filter(Boolean).length,
+      status,
+      playerId: playerId as 0 | 1,
+      ...(room.state ? { gameState: serializeState(room.state) } : {}),
+    };
+    send(socket, { type, ...(type === 'game_started' ? { state } : { state }) } as ServerMessage);
+  });
+}
+
+function reject(socket: WebSocket, message: string): void {
+  send(socket, { type: 'error', message });
+}
+
+function validAction(game: GameState, action: Action, owner: Owner | null): Action | null {
+  const legal = getAllLegalActions(game.board, owner);
+  if (action.type === 'reveal') {
+    const candidate = legal.find((item) => item.type === 'reveal' && item.r === action.r && item.c === action.c);
+    return candidate ?? null;
+  }
+  const moves = getPieceMoves(game.board, action.from.r, action.from.c, owner);
+  const candidate = moves.find((item) => item.to.r === action.to.r && item.to.c === action.to.c && item.outcome === action.outcome);
+  return candidate ?? null;
+}
+
+function handleMessage(socket: WebSocket, message: ClientMessage): void {
+  const connection = clients.get(socket);
+  if (message.type === 'create_room') {
+    if (connection) return reject(socket, '你已经在房间中');
+    const room: Room = { id: roomId(), catOnlyCanCaptureRat: message.catOnlyCanCaptureRat, clients: [socket, null], state: null };
+    rooms.set(room.id, room);
+    clients.set(socket, { room, playerId: 0 });
+    send(socket, { type: 'room_created', roomId: room.id, playerId: 0 });
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (message.type === 'join_room') {
+    if (connection) return reject(socket, '你已经在房间中');
+    const room = rooms.get(message.roomId);
+    if (!room || room.clients[1] || room.state) return reject(socket, '房间不存在或已开始');
+    room.clients[1] = socket;
+    clients.set(socket, { room, playerId: 1 });
+    send(socket, { type: 'room_joined', roomId: room.id, playerId: 1 });
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (!connection) return reject(socket, '请先创建或加入房间');
+  const { room, playerId } = connection;
+  if (message.type === 'start_game') {
+    if (playerId !== 0) return reject(socket, '只有房主可以开始');
+    if (!room.clients[1]) return reject(socket, '请等待第二位玩家加入');
+    if (room.state) return reject(socket, '游戏已经开始');
+    room.state = createState('pvp', 1, 2, room.catOnlyCanCaptureRat);
+    broadcast(room, 'game_started');
+    return;
+  }
+  if (message.type === 'action') {
+    if (!room.state || room.state.gameOver) return reject(socket, '当前没有进行中的游戏');
+    if (room.state.currentPlayerId !== playerId) return reject(socket, '还没轮到你');
+    const owner = room.state.playerOwners[playerId];
+    const action = validAction(room.state, message.action, owner);
+    if (!action) return reject(socket, '非法动作');
+    const context = applyAction(room.state.board, action);
+    if (action.type === 'move' && context.info.type === 'move' && context.info.target) {
+      room.state.captured[context.info.target.owner].push({ ...context.info.target });
+      if (action.outcome === 'tie') room.state.captured[context.info.mover.owner].push({ ...context.info.mover });
+    }
+    afterAction(room.state, action);
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (message.type === 'leave_room') {
+    disconnect(socket);
+  }
+}
+
+function disconnect(socket: WebSocket): void {
+  const connection = clients.get(socket);
+  if (!connection) return;
+  const { room, playerId } = connection;
+  clients.delete(socket);
+  room.clients[playerId] = null;
+  room.clients.forEach((peer) => { if (peer) send(peer, { type: 'player_left' }); });
+  if (!room.clients.some(Boolean)) rooms.delete(room.id);
+  else if (!room.state) broadcast(room, 'room_state');
+}
+
+wss.on('connection', (socket) => {
+  socket.on('message', (data) => {
+    try {
+      handleMessage(socket, JSON.parse(data.toString()) as ClientMessage);
+    } catch {
+      reject(socket, '消息格式无效');
+    }
+  });
+  socket.on('close', () => disconnect(socket));
+});
+
+console.log('暗兽棋联机服务端已监听 ws://0.0.0.0:3000');
