@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">暗兽棋</title>
+  <desc id="desc">木色圆形棋子上的红蓝兽爪与中央棋盘营地</desc>
+  <defs>
+    <radialGradient id="piece" cx="35%" cy="28%" r="75%">
+      <stop offset="0" stop-color="#fff8e8"/>
+      <stop offset="0.68" stop-color="#e9cc94"/>
+      <stop offset="1" stop-color="#bd8747"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2b1a0f" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="57" fill="url(#piece)" stroke="#6d4c3d" stroke-width="7" filter="url(#shadow)"/>
+  <circle cx="64" cy="64" r="47" fill="none" stroke="#8e633c" stroke-width="2" stroke-dasharray="3 4" opacity=".7"/>
+  <path d="M35 35h58v58H35zM64 35v58M35 64h58" fill="none" stroke="#5a3d24" stroke-width="4" stroke-linecap="round"/>
+  <path d="m49 49 30 30m0-30L49 79" fill="none" stroke="#5a3d24" stroke-width="3" stroke-linecap="round"/>
+  <path d="M22 63c5-15 15-24 29-28l5 13c-9 3-15 9-18 18l-16-3Z" fill="#c3272b" stroke="#7d171a" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="34" cy="47" r="5" fill="#c3272b" stroke="#7d171a" stroke-width="2"/>
+  <circle cx="43" cy="40" r="5" fill="#c3272b" stroke="#7d171a" stroke-width="2"/>
+  <path d="M106 65c-5 15-15 24-29 28l-5-13c9-3 15-9 18-18l16 3Z" fill="#2865a7" stroke="#174372" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="94" cy="81" r="5" fill="#2865a7" stroke="#174372" stroke-width="2"/>
+  <circle cx="85" cy="88" r="5" fill="#2865a7" stroke="#174372" stroke-width="2"/>
+  <circle cx="64" cy="64" r="12" fill="#f5e6c8" stroke="#5a3d24" stroke-width="4"/>
+  <path d="M64 56c5 0 8 4 8 8s-3 8-8 8-8-4-8-8 3-8 8-8Z" fill="#c9a227"/>
+</svg>
