@@ -5,6 +5,8 @@ export type ClientMessage =
   | { type: 'join_room'; roomId: string }
   | { type: 'start_game' }
   | { type: 'action'; action: Action }
+  | { type: 'request_undo' }
+  | { type: 'respond_undo'; accepted: boolean }
   | { type: 'leave_room' };
 
 export type SerializedBoard = {
@@ -43,5 +45,7 @@ export type ServerMessage =
   | { type: 'room_joined'; roomId: string; playerId: 1 }
   | { type: 'room_state'; state: RoomState }
   | { type: 'game_started'; state: RoomState }
+  | { type: 'undo_requested' }
+  | { type: 'undo_result'; accepted: boolean }
   | { type: 'error'; message: string }
   | { type: 'player_left' };

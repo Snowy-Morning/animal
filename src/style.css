@@ -11,7 +11,7 @@
   --wood-border: #6d4c3d;
   --line: #5a3d24;
   --red: #c3272b;
-  --black: #3d3b4a;
+  --black: #2865a7;
   --piece-fill: #f5e6c8;
   --ink: #2b2b2b;
   --gold: #c9a227;
@@ -376,9 +376,9 @@ body {
   border-color: var(--red);
   background: radial-gradient(
     circle at 32% 28%,
-    #fffaf7 0%,
-    #f5ded6 62%,
-    #d9b4a8 100%
+    #fff9f8 0%,
+    #f7ddd9 62%,
+    #e7b9b1 100%
   );
 }
 .owner-2 .front {
@@ -386,9 +386,9 @@ body {
   border-color: var(--black);
   background: radial-gradient(
     circle at 32% 28%,
-    #fff 0%,
-    #e7e5e3 62%,
-    #c4c1c5 100%
+    #f8fbff 0%,
+    #dbeafe 62%,
+    #a9cbed 100%
   );
 }
 .piece.selected .piece-face {

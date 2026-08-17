@@ -6,17 +6,31 @@ import {
   createState,
   getAllLegalActions,
   getPieceMoves,
+  revertAction,
   type Action,
+  type ActionContext,
   type GameState,
   type Owner,
+  type Piece,
 } from '../src/game/rules';
 import type { ClientMessage, RoomState, SerializedGameState, ServerMessage } from '../src/network/protocol';
+
+type ServerHistoryEntry = {
+  revertContext: ActionContext;
+  previousPlayerId: 0 | 1;
+  previousPlayerOwners: [Owner | null, Owner | null];
+  previousTurnCount: number;
+  previousLastRevealedOwner: Owner | null;
+  captured: { piece: Piece; owner: Owner }[];
+};
 
 type Room = {
   id: string;
   catOnlyCanCaptureRat: boolean;
   clients: [WebSocket | null, WebSocket | null];
   state: GameState | null;
+  history: ServerHistoryEntry[];
+  undoRequester: 0 | 1 | null;
 };
 
 const rooms = new Map<string, Room>();
@@ -92,7 +106,14 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
   const connection = clients.get(socket);
   if (message.type === 'create_room') {
     if (connection) return reject(socket, '你已经在房间中');
-    const room: Room = { id: roomId(), catOnlyCanCaptureRat: message.catOnlyCanCaptureRat, clients: [socket, null], state: null };
+    const room: Room = {
+      id: roomId(),
+      catOnlyCanCaptureRat: message.catOnlyCanCaptureRat,
+      clients: [socket, null],
+      state: null,
+      history: [],
+      undoRequester: null,
+    };
     rooms.set(room.id, room);
     clients.set(socket, { room, playerId: 0 });
     send(socket, { type: 'room_created', roomId: room.id, playerId: 0 });
@@ -116,6 +137,8 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     if (!room.clients[1]) return reject(socket, '请等待第二位玩家加入');
     if (room.state) return reject(socket, '游戏已经开始');
     room.state = createState('pvp', 1, 2, room.catOnlyCanCaptureRat);
+    room.history = [];
+    room.undoRequester = null;
     broadcast(room, 'game_started');
     return;
   }
@@ -125,12 +148,73 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     const owner = room.state.playerOwners[playerId];
     const action = validAction(room.state, message.action, owner);
     if (!action) return reject(socket, '非法动作');
-    const context = applyAction(room.state.board, action);
-    if (action.type === 'move' && context.info.type === 'move' && context.info.target) {
-      room.state.captured[context.info.target.owner].push({ ...context.info.target });
-      if (action.outcome === 'tie') room.state.captured[context.info.mover.owner].push({ ...context.info.mover });
+    const previousPlayerId = room.state.currentPlayerId;
+    const previousPlayerOwners = [...room.state.playerOwners] as [Owner | null, Owner | null];
+    const previousTurnCount = room.state.turnCount;
+    const previousLastRevealedOwner = room.state.lastRevealedOwner;
+    const revertContext = applyAction(room.state.board, action);
+    const captured: ServerHistoryEntry['captured'] = [];
+    if (action.type === 'move' && revertContext.info.type === 'move' && revertContext.info.target) {
+      captured.push({ piece: { ...revertContext.info.target }, owner: revertContext.info.target.owner });
+      if (action.outcome === 'tie') {
+        captured.push({ piece: { ...revertContext.info.mover }, owner: revertContext.info.mover.owner });
+      }
+      for (const item of captured) {
+        room.state.captured[item.owner].push({ ...item.piece });
+      }
     }
     afterAction(room.state, action);
+    room.history.push({
+      revertContext,
+      previousPlayerId,
+      previousPlayerOwners,
+      previousTurnCount,
+      previousLastRevealedOwner,
+      captured,
+    });
+    room.undoRequester = null;
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (message.type === 'request_undo') {
+    if (!room.state || room.state.gameOver) return reject(socket, '当前没有进行中的游戏');
+    if (!room.history.length) return reject(socket, '暂无可悔棋步');
+    if (room.undoRequester !== null) return reject(socket, '已有未处理的悔棋请求');
+    const opponentId = playerId === 0 ? 1 : 0;
+    const opponent = room.clients[opponentId];
+    if (!opponent) return reject(socket, '对手已离开房间');
+    room.undoRequester = playerId;
+    send(opponent, { type: 'undo_requested' });
+    return;
+  }
+  if (message.type === 'respond_undo') {
+    if (!room.state || room.undoRequester === null) return reject(socket, '当前没有待处理的悔棋请求');
+    if (playerId === room.undoRequester) return reject(socket, '不能回应自己的悔棋请求');
+    const requester = room.clients[room.undoRequester];
+    const responder = room.clients[playerId];
+    if (!message.accepted) {
+      room.undoRequester = null;
+      if (requester) send(requester, { type: 'undo_result', accepted: false });
+      if (responder) send(responder, { type: 'undo_result', accepted: false });
+      return;
+    }
+    const entry = room.history.pop();
+    if (!entry) return reject(socket, '暂无可悔棋步');
+    revertAction(room.state.board, entry.revertContext);
+    for (const item of entry.captured) {
+      const captured = room.state.captured[item.owner];
+      const index = captured.findIndex((piece) => piece.id === item.piece.id);
+      if (index >= 0) captured.splice(index, 1);
+    }
+    room.state.playerOwners = entry.previousPlayerOwners;
+    room.state.currentPlayerId = entry.previousPlayerId;
+    room.state.turnCount = entry.previousTurnCount;
+    room.state.lastRevealedOwner = entry.previousLastRevealedOwner;
+    room.state.gameOver = false;
+    room.state.winner = null;
+    room.undoRequester = null;
+    if (requester) send(requester, { type: 'undo_result', accepted: true });
+    if (responder) send(responder, { type: 'undo_result', accepted: true });
     broadcast(room, 'room_state');
     return;
   }
@@ -145,6 +229,7 @@ function disconnect(socket: WebSocket): void {
   const { room, playerId } = connection;
   clients.delete(socket);
   room.clients[playerId] = null;
+  room.undoRequester = null;
   room.clients.forEach((peer) => { if (peer) send(peer, { type: 'player_left' }); });
   if (!room.clients.some(Boolean)) rooms.delete(room.id);
   else if (!room.state) broadcast(room, 'room_state');

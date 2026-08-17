@@ -43,6 +43,8 @@ const roomIdInput = ref('');
 const roomState = ref<RoomState | null>(null);
 const roomError = ref('');
 const playerId = ref<0 | 1 | null>(null);
+const undoRequestPending = ref(false);
+const incomingUndoRequest = ref(false);
 let socket: WebSocket | null = null;
 const difficulty = ref(2);
 
@@ -74,12 +76,16 @@ function menu(): void {
   roomState.value = null;
   playerId.value = null;
   roomError.value = '';
+  undoRequestPending.value = false;
+  incomingUndoRequest.value = false;
   aiThinking.value = false;
 }
 
 // 按当前规则重新开始游戏。
 function restart(): void {
   if (mode.value === 'lan') {
+    undoRequestPending.value = false;
+    incomingUndoRequest.value = false;
     menu();
     return;
   }
@@ -98,11 +104,15 @@ function restart(): void {
 }
 
 // 判断当前是否轮到人类操作。
-const humanTurn = computed(
-  () =>
-    !!state.value &&
-    (state.value.mode === 'pvp' || state.value.currentPlayerId !== state.value.aiPlayerId),
-);
+const humanTurn = computed(() => {
+  if (!state.value) {
+    return false;
+  }
+  if (mode.value === 'lan') {
+    return playerId.value === state.value.currentPlayerId;
+  }
+  return state.value.mode === 'pvp' || state.value.currentPlayerId !== state.value.aiPlayerId;
+});
 
 // 生成当前回合的玩家和阵营说明。
 const turnText = computed(() => {
@@ -189,6 +199,29 @@ function sendNetworkAction(action: Action): void {
     return;
   }
   socket.send(JSON.stringify({ type: 'action', action }));
+}
+
+/*
+ * 向对手发起悔棋请求，等待服务端转发的处理结果。
+ */
+function requestNetworkUndo(): void {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    roomError.value = '联机服务端连接已断开';
+    return;
+  }
+  undoRequestPending.value = true;
+  socket.send(JSON.stringify({ type: 'request_undo' }));
+}
+
+/*
+ * 回应对手的悔棋请求，由服务端执行实际回退。
+ */
+function respondNetworkUndo(accepted: boolean): void {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    roomError.value = '联机服务端连接已断开';
+    return;
+  }
+  socket.send(JSON.stringify({ type: 'respond_undo', accepted }));
 }
 
 // 执行动作、记录历史并安排下一回合。
@@ -314,6 +347,8 @@ function hydrate(room: RoomState): void {
 
 function connectRoom(type: 'create_room' | 'join_room'): void {
   roomError.value = '';
+  undoRequestPending.value = false;
+  incomingUndoRequest.value = false;
   socket?.close();
   socket = new WebSocket(`ws://${location.hostname}:3000`);
   socket.onopen = () => {
@@ -329,11 +364,22 @@ function connectRoom(type: 'create_room' | 'join_room'): void {
       roomIdInput.value = message.roomId;
     } else if (message.type === 'room_state' || message.type === 'game_started') {
       roomState.value = message.state;
+      undoRequestPending.value = false;
+      incomingUndoRequest.value = false;
       hydrate(message.state);
+    } else if (message.type === 'undo_requested') {
+      incomingUndoRequest.value = true;
+    } else if (message.type === 'undo_result') {
+      undoRequestPending.value = false;
+      incomingUndoRequest.value = false;
+      roomError.value = message.accepted ? '对手已同意悔棋' : '对手已拒绝悔棋';
     } else if (message.type === 'error') {
       roomError.value = message.message;
+      undoRequestPending.value = false;
     } else if (message.type === 'player_left') {
       roomError.value = '另一位玩家已离开';
+      undoRequestPending.value = false;
+      incomingUndoRequest.value = false;
       state.value = null;
     }
   };
@@ -343,6 +389,15 @@ function connectRoom(type: 'create_room' | 'join_room'): void {
 function joinRoom(): void {
   if (roomIdInput.value.trim().length === 6) connectRoom('join_room');
   else roomError.value = '请输入 6 位房间号';
+}
+
+// 由房主向服务端发送开始联机对局请求。
+function startNetworkGame(): void {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    roomError.value = '联机服务端连接已断开';
+    return;
+  }
+  socket.send(JSON.stringify({ type: 'start_game' }));
 }
 
 // 判断某个位置是否为当前移动提示点。
@@ -392,7 +447,7 @@ function alive(owner: Owner): number {
         <div v-else class="room-status">
           <p>房间号：<b>{{ roomIdInput }}</b></p>
           <p>{{ roomState.playerCount }}/2 位玩家已进入</p>
-          <button v-if="roomState.status === 'ready' && playerId === 0" class="btn btn-primary" @click="socket?.send(JSON.stringify({ type: 'start_game' }))">开始对局</button>
+          <button v-if="roomState.status === 'ready' && playerId === 0" class="btn btn-primary" @click="startNetworkGame">开始对局</button>
           <p v-else>等待{{ roomState.status === 'waiting' ? '另一位玩家加入' : '房主开始对局' }}</p>
         </div>
         <p v-if="roomError" class="room-error">{{ roomError }}</p>
@@ -517,6 +572,7 @@ function alive(owner: Owner): number {
       </div>
       <div class="move-count">第 {{ state.turnCount + 1 }} 手</div>
       <div class="action-hint">{{ actionHint }}</div>
+      <p v-if="roomError && mode === 'lan'" class="room-error">{{ roomError }}</p>
 
       <!-- 双方损失与存活数量。 -->
       <div class="captured-section">
@@ -533,12 +589,29 @@ function alive(owner: Owner): number {
 
       <!-- 游戏操作按钮。 -->
       <div class="btn-group">
-        <button v-if="mode !== 'lan'" class="btn" @click="undo">悔棋</button>
+        <button
+          v-if="mode === 'lan'"
+          class="btn"
+          :disabled="undoRequestPending || incomingUndoRequest || state.gameOver"
+          @click="requestNetworkUndo"
+        >请求悔棋</button>
+        <button v-else class="btn" @click="undo">悔棋</button>
         <button class="btn" @click="restart">重开</button>
         <button class="btn" @click="menu">返回菜单</button>
       </div>
     </aside>
   </main>
+
+  <!-- 对手悔棋确认。 -->
+  <div v-if="incomingUndoRequest" class="overlay">
+    <div class="card over-card">
+      <h2>对手请求悔棋</h2>
+      <div class="btn-group">
+        <button class="btn btn-primary" @click="respondNetworkUndo(true)">同意</button>
+        <button class="btn" @click="respondNetworkUndo(false)">拒绝</button>
+      </div>
+    </div>
+  </div>
 
   <!-- AI 思考提示。 -->
   <div v-if="aiThinking" class="ai-thinking">AI 思考中</div>
