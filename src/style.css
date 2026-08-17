@@ -10,6 +10,7 @@
   --wood-dark: #a3793f;
   --wood-border: #6d4c3d;
   --line: #5a3d24;
+  --track-width: 2px;
   --red: #c3272b;
   --black: #2865a7;
   --piece-fill: #f5e6c8;
@@ -277,8 +278,8 @@ body {
   width: calc(var(--cell-size) * 3);
   height: calc(var(--cell-size) * 3);
   background-image:
-    linear-gradient(to right, var(--line) 1.5px, transparent 1.5px),
-    linear-gradient(to bottom, var(--line) 1.5px, transparent 1.5px);
+    linear-gradient(to right, var(--line) var(--track-width), transparent var(--track-width)),
+    linear-gradient(to bottom, var(--line) var(--track-width), transparent var(--track-width));
   background-size: var(--cell-size) var(--cell-size);
 }
 .board-intersection:after {
@@ -290,7 +291,7 @@ body {
   left: var(--pad);
   width: calc(var(--cell-size) * 3);
   height: calc(var(--cell-size) * 3);
-  border: 2.5px solid var(--line);
+  border: 4px solid var(--line);
 }
 .camp-box {
   position: absolute;
@@ -301,17 +302,17 @@ body {
   background:
     linear-gradient(
       to bottom right,
-      transparent 49%,
-      var(--line) 49%,
-      var(--line) 51%,
-      transparent 51%
+      transparent calc(50% - var(--track-width) / 2),
+      var(--line) calc(50% - var(--track-width) / 2),
+      var(--line) calc(50% + var(--track-width) / 2),
+      transparent calc(50% + var(--track-width) / 2)
     ),
     linear-gradient(
       to top right,
-      transparent 49%,
-      var(--line) 49%,
-      var(--line) 51%,
-      transparent 51%
+      transparent calc(50% - var(--track-width) / 2),
+      var(--line) calc(50% - var(--track-width) / 2),
+      var(--line) calc(50% + var(--track-width) / 2),
+      transparent calc(50% + var(--track-width) / 2)
     );
   z-index: 3;
 }
@@ -416,7 +417,7 @@ body {
   font-weight: bold;
   line-height: 1;
   color: currentColor;
-  opacity: 0.16;
+  opacity: 0.10;
 }
 .owner-1 .front {
   color: var(--red);
