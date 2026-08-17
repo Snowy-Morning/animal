@@ -390,10 +390,11 @@ function updatePanel() {
 
   // 操作提示
   const hintEl = $('action-hint');
+  const ratRule = state.catOnlyCanCaptureRat ? '只有猫能吃鼠' : '除象外都能吃鼠';
   if (owner == null) {
-    hintEl.textContent = '阵营未确定：翻开一张牌以决定你的颜色';
+    hintEl.textContent = `阵营未确定：翻开一张牌以决定你的颜色（${ratRule}）`;
   } else {
-    hintEl.textContent = `可选：翻一张未知牌 / 移动己方${ownerLabel}棋子（豹可斜飞 / 同级对死）`;
+    hintEl.textContent = `可选：翻一张未知牌 / 移动己方${ownerLabel}棋子（豹可斜飞 / 同级对死 / ${ratRule}）`;
   }
 
   // 更新俘获列表
@@ -437,8 +438,8 @@ function showGameOver(winner) {
 }
 
 // -------------------- 开局 / 重开 / 返回菜单 --------------------
-function startGame(mode, aiPlayerId, aiDepth) {
-  state = createState(mode, aiPlayerId, aiDepth);
+function startGame(mode, aiPlayerId, aiDepth, catOnlyCanCaptureRat = true) {
+  state = createState(mode, aiPlayerId, aiDepth, catOnlyCanCaptureRat);
   isAnimating = false;
   aiThinking = false;
   $('start-screen').classList.add('hidden');
@@ -473,15 +474,16 @@ function init() {
     if (mode === 'pve') {
       aiDepth = parseInt(document.querySelector('input[name=diff]:checked').value, 10);
     }
-    startGame(mode, aiPlayerId, aiDepth);
+    const catOnlyCanCaptureRat = document.querySelector('input[name="cat-only-rat"]:checked').value === 'on';
+    startGame(mode, aiPlayerId, aiDepth, catOnlyCanCaptureRat);
   });
   $('btn-undo').addEventListener('click', undo);
   $('btn-restart').addEventListener('click', () => {
-    if (state) startGame(state.mode, state.aiPlayerId, state.aiDepth);
+    if (state) startGame(state.mode, state.aiPlayerId, state.aiDepth, state.catOnlyCanCaptureRat);
   });
   $('btn-menu').addEventListener('click', returnToMenu);
   $('btn-again').addEventListener('click', () => {
-    if (state) startGame(state.mode, state.aiPlayerId, state.aiDepth);
+    if (state) startGame(state.mode, state.aiPlayerId, state.aiDepth, state.catOnlyCanCaptureRat);
   });
   $('btn-back-menu').addEventListener('click', returnToMenu);
 }

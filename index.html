@@ -24,6 +24,14 @@
         </div>
       </div>
 
+      <div class="option-group">
+        <div class="option-label">吃鼠规则</div>
+        <div class="options">
+          <label class="radio"><input type="radio" name="cat-only-rat" value="on" checked><span>开启：只有猫能吃鼠</span></label>
+          <label class="radio"><input type="radio" name="cat-only-rat" value="off"><span>关闭：除象外都能吃鼠</span></label>
+        </div>
+      </div>
+
       <div id="pve-options" class="option-group hidden">
         <div class="option-label">暗棋阵营</div>
         <div class="options" style="flex-direction:column;gap:8px;">
@@ -51,7 +59,7 @@
           <p><b>暗棋阵营</b>：<b>没有固定先手</b>，谁先翻开哪色棋子就获得该颜色阵营；对方自动获得另一颜色。</p>
           <p><b>回合操作（二选一）</b>：① 翻任意一张背面朝上的棋子；② 移动一张已翻开的己方棋子（上下左右走一格）。<b>豹可斜向飞</b>（8 方向移动）。</p>
           <p><b>等级</b>：象 8 ＞ 狮 7 ＞ 虎 6 ＞ 豹 5 ＞ 狼 4 ＞ 狗 3 ＞ 猫 2 ＞ 鼠 1。大吃小。</p>
-          <p><b>特殊规则</b>：<b>只有猫能吃鼠</b>；<b>象不能吃鼠</b>；<b>鼠能吃象</b>（以小博大）。</p>
+          <p><b>特殊规则</b>：可在开局前选择是否启用<b>只有猫能吃鼠</b>；关闭后除象外的棋子均可按等级吃鼠。<b>象始终不能吃鼠</b>；<b>鼠能吃象</b>（以小博大）。</p>
           <p><b>大本营</b>：中央方格四个角点均可进入，但营内同时最多一颗棋子；敌方不能吃或碰营内棋子，营内棋子可以移动或吃掉四个入口点上的敌棋。</p>
           <p><b>对死</b>：敌我两个相同文字棋子相撞 → <b>双方同归于尽</b>（一起死亡）。</p>
           <p><b>胜负</b>：消灭所有敌棋即获胜。</p>

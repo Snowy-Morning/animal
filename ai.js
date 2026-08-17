@@ -59,7 +59,7 @@ function threatScore(board, r, c, defenderSide, defenderPiece) {
     if (!opp || !opp.revealed || opp.owner === defenderSide) continue;
     const isDiagonal = (dr !== 0 && dc !== 0);
     if (isDiagonal && opp.type !== 'leopard') continue;
-    const cap = canCapture(opp, defenderPiece);
+    const cap = canCapture(opp, defenderPiece, board.catOnlyCanCaptureRat !== false);
     if (cap === 'eat') threat += PIECE_VALUE[defenderPiece.type] * 0.9;
     else if (cap === 'tie') threat += PIECE_VALUE[defenderPiece.type] * 0.4;
   }

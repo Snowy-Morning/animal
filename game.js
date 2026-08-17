@@ -67,9 +67,10 @@ function shuffle(arr) {
 }
 
 // -------------------- 棋盘创建 + 随机散子 --------------------
-function createBoard() {
+function createBoard(catOnlyCanCaptureRat = true) {
   const board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
   board.camp = null;
+  board.catOnlyCanCaptureRat = catOnlyCanCaptureRat;
 
   // 16 棋子池：红黑各 8（象狮虎豹狼狗猫鼠）
   const pool = [];
@@ -98,7 +99,10 @@ function createBoard() {
 }
 
 function cloneBoard(board) {
-  return board.map(row => row.map(cell => (cell ? { ...cell } : null)));
+  const copy = board.map(row => row.map(cell => (cell ? { ...cell } : null)));
+  copy.camp = board.camp ? { ...board.camp } : null;
+  copy.catOnlyCanCaptureRat = board.catOnlyCanCaptureRat !== false;
+  return copy;
 }
 
 // -------------------- 存活棋子统计 --------------------
@@ -111,18 +115,18 @@ function countAlive(board, owner) {
 }
 
 // -------------------- 吃子判定 --------------------
-function canCapture(attacker, defender) {
+function canCapture(attacker, defender, catOnlyCanCaptureRat = true) {
   if (!attacker.revealed || !defender.revealed) return 'no';
   if (attacker.owner === defender.owner) return 'no';
 
-  // 同级 → 对死（双方都移除）—— 优先于"只有猫能吃鼠"
+  // 同级 → 对死（双方都移除）—— 优先于吃鼠规则
   if (attacker.rank === defender.rank) return 'tie';
 
-  // 只有猫能吃鼠
-  if (defender.type === 'rat' && attacker.type !== 'cat') return 'no';
-
-  // 象不能吃鼠（即使等级更高）
+  // 象在两种规则下都不能吃鼠
   if (attacker.type === 'elephant' && defender.type === 'rat') return 'no';
+
+  // 开启时只有猫能吃鼠；关闭时除象外按正常等级规则吃鼠
+  if (catOnlyCanCaptureRat && defender.type === 'rat' && attacker.type !== 'cat') return 'no';
 
   // 鼠能吃象（小博大特例）
   if (attacker.type === 'rat' && defender.type === 'elephant') return 'eat';
@@ -162,7 +166,7 @@ function getPieceMoves(board, r, c, playerOwner) {
         moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: null, outcome: 'move' });
         continue;
       }
-      const cap = canCapture(piece, target);
+      const cap = canCapture(piece, target, board.catOnlyCanCaptureRat !== false);
       if (cap === 'eat' || cap === 'tie') {
         moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: target, outcome: cap });
       }
@@ -182,7 +186,7 @@ function getPieceMoves(board, r, c, playerOwner) {
       moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: null, outcome: 'move' });
       continue;
     }
-    const cap = canCapture(piece, target);
+    const cap = canCapture(piece, target, board.catOnlyCanCaptureRat !== false);
     if (cap === 'eat' || cap === 'tie') {
       moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: target, outcome: cap });
     }
@@ -319,16 +323,18 @@ function checkWinner(board, winnerOwner, loserOwner) {
  * @param {string} mode 'pvp' 或 'pve'
  * @param {number} aiPlayerId AI 对应的玩家 ID（0 或 1）
  * @param {number} aiDepth 未使用
+ * @param {boolean} catOnlyCanCaptureRat 是否启用“只有猫能吃鼠”
  */
-function createState(mode = 'pvp', aiPlayerId = 1, aiDepth = 2) {
+function createState(mode = 'pvp', aiPlayerId = 1, aiDepth = 2, catOnlyCanCaptureRat = true) {
   return {
-    board: createBoard(),
+    board: createBoard(catOnlyCanCaptureRat),
     // 暗棋：初始无阵营，谁先翻谁定
     playerOwners: [null, null],  // playerOwners[0] = 玩家1的owner, playerOwners[1] = 玩家2的owner
     currentPlayerId: 0,          // 当前行动的玩家 ID
     mode,
     aiPlayerId,
     aiDepth,
+    catOnlyCanCaptureRat,
     turnCount: 0,
     history: [],
     captured: { 1: [], 2: [] },
