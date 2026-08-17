@@ -145,6 +145,7 @@ const DIAGONAL_DIRS = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
  *   1) 大本营一次最多只能容纳 1 颗棋子（进入前需检查 campPieceCount）
  *   2) 敌方不能对大本营内的棋子进行吃/对死（大本营内棋子受保护）
  *   3) 大本营内的棋子可以攻击大本营四周的敌方棋子（目标在大本营外，不受保护）
+ *   4) 大本营有棋子时，豹不能斜飞进入或攻击大本营；其他位置的斜飞不受影响
  * @param {Array} board 
  * @param {number} r 
  * @param {number} c 
@@ -158,9 +159,10 @@ function getPieceMoves(board, r, c, playerOwner) {
   if (!piece || !piece.revealed) return moves;
   if (playerOwner != null && piece.owner !== playerOwner) return moves;
 
-  // 营内棋子可走向中央方格四个角点，并按正常等级规则吃/对死四周棋子。
+  // 营内统一使用四个固定出口；豹在这里不启用营外的斜飞方向。
   if (fromCamp) {
-    for (const [nr, nc] of [[1, 1], [1, 2], [2, 1], [2, 2]]) {
+    const campExits = [[1, 1], [1, 2], [2, 1], [2, 2]];
+    for (const [nr, nc] of campExits) {
       const target = board[nr][nc];
       if (!target) {
         moves.push({ type: 'move', from, to: { r: nr, c: nc }, capture: null, outcome: 'move' });
@@ -174,6 +176,7 @@ function getPieceMoves(board, r, c, playerOwner) {
     return moves;
   }
 
+  // 豹在普通棋盘上始终可以斜飞；大本营占用状态不影响其他位置的斜向走法。
   const dirs = piece.type === 'leopard'
     ? [...ORTHOGONAL_DIRS, ...DIAGONAL_DIRS]
     : ORTHOGONAL_DIRS;
@@ -192,8 +195,10 @@ function getPieceMoves(board, r, c, playerOwner) {
     }
   }
 
-  // 只有中央方格四个角点可进入大本营；营内已有棋子时，不可进入、吃或碰。
-  if (isCampEntrance(r, c) && campPieceCount(board) === 0) {
+  // 只有中央方格四个角点可进入大本营。营内被占用时，包含豹斜飞在内的
+  // 所有进入、吃子和碰撞动作都不生成；豹在其他目标位置仍保留斜飞。
+  const campIsEmpty = campPieceCount(board) === 0;
+  if (isCampEntrance(r, c) && campIsEmpty) {
     moves.push({ type: 'move', from, to: { ...CAMP_POSITION }, capture: null, outcome: 'move' });
   }
 
