@@ -24,17 +24,15 @@ import {
 // 导入 AI 动作选择函数。
 import { findBestMove } from './game/ai';
 
-// 定义棋子的 Emoji 图标。
-const icons: Record<string, string> = {
-  elephant: '🐘',
-  lion: '🦁',
-  tiger: '🐯',
-  leopard: '🐆',
-  wolf: '🐺',
-  dog: '🐕',
-  cat: '🐈',
-  rat: '🐀',
-};
+// 返回经典版动物头像图片地址。
+function classicPieceImage(type: string): string {
+  return `/pieces/${type}.png`;
+}
+
+// 判断是否使用 Emoji 显示该棋子。
+function usesEmoji(type: string): boolean {
+  return type === 'leopard';
+}
 
 // 保存菜单中的对战模式、吃鼠规则和 AI 难度。
 const mode = ref<'pvp' | 'pve' | 'lan'>('pvp');
@@ -541,7 +539,7 @@ function alive(owner: Owner): number {
           <div class="piece-inner">
             <div class="piece-face back"></div>
             <div class="piece-face front">
-              <span class="piece-icon" v-html="icons[state.board.camp.type]"></span>
+              <img class="piece-icon classic-icon" :src="classicPieceImage(state.board.camp.type)" :alt="PIECE_TYPES[state.board.camp.type].char">
               <span class="piece-name">{{ PIECE_TYPES[state.board.camp.type].char }}</span>
             </div>
           </div>
@@ -573,7 +571,8 @@ function alive(owner: Owner): number {
               <div class="piece-inner">
                 <div class="piece-face back"></div>
                 <div class="piece-face front">
-                  <span class="piece-icon">{{ icons[piece.type] }}</span>
+                  <span v-if="usesEmoji(piece.type)" class="piece-icon leopard-emoji">🐆</span>
+                  <img v-else class="piece-icon classic-icon" :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char">
                   <span class="piece-name">{{ PIECE_TYPES[piece.type].char }}</span>
                 </div>
               </div>
@@ -604,7 +603,12 @@ function alive(owner: Owner): number {
             <span><i class="loss-dot" :class="owner === 1 ? 'red' : 'black'"></i>{{ owner === 1 ? '红方' : '黑方' }}损失</span>
           </div>
           <div class="captured-list">
-            <span v-for="piece in state.captured[owner]" :key="piece.id" class="cap-piece" :class="owner === 1 ? 'red' : 'black'">{{ icons[piece.type] }}</span>
+            <span
+              v-for="piece in state.captured[owner]"
+              :key="piece.id"
+              class="cap-piece"
+              :class="owner === 1 ? 'red' : 'black'"
+            ><span v-if="usesEmoji(piece.type)" class="leopard-emoji">🐆</span><img v-else :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char"></span>
           </div>
           <div class="alive-count">存活 {{ alive(owner) }}</div>
         </div>
