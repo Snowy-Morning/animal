@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>暗兽棋 · 翻牌暗战</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ========== 开始界面 ========== -->
+  <div id="start-screen" class="overlay">
+    <div class="card start-card">
+      <h1 class="title">暗兽棋</h1>
+      <p class="subtitle">翻牌暗战 · 丛林对决</p>
+
+      <div class="option-group">
+        <div class="option-label">对战模式</div>
+        <div class="options">
+          <label class="radio"><input type="radio" name="mode" value="pvp" checked><span>本地双人对战</span></label>
+          <label class="radio"><input type="radio" name="mode" value="pve"><span>人机对战</span></label>
+        </div>
+      </div>
+
+      <div id="pve-options" class="option-group hidden">
+        <div class="option-label">暗棋阵营</div>
+        <div class="options" style="flex-direction:column;gap:8px;">
+          <div style="font-size:13px;color:var(--wood-border);line-height:1.6;background:rgba(255,255,255,0.3);padding:10px 14px;border-radius:6px;">
+            <b>没有固定先手！</b><br>
+            谁先翻开哪种颜色的棋子，就获得该颜色阵营。<br>
+            玩家和 AI 轮流翻牌，首个翻牌者决定双方颜色。
+          </div>
+        </div>
+        <div class="option-label" style="margin-top:14px;">AI 难度</div>
+        <div class="options">
+          <label class="radio"><input type="radio" name="diff" value="1"><span>简单</span></label>
+          <label class="radio"><input type="radio" name="diff" value="2" checked><span>中等</span></label>
+          <label class="radio"><input type="radio" name="diff" value="3"><span>困难</span></label>
+        </div>
+      </div>
+
+      <button id="btn-start" class="btn btn-primary">开始对局</button>
+
+      <details class="rules">
+        <summary>查看游戏规则</summary>
+        <div class="rules-content">
+          <p><b>棋具</b>：3 × 3 方格棋盘的 <b>4 × 4 交叉点</b>（共 16 点），棋子在交叉点上沿线走动；中央方格内部是独立的<b>公共大本营</b>。</p>
+          <p><b>初始</b>：红黑各 8 子共 16 子散布在 16 交叉点上，<b>全部背面朝上</b>。</p>
+          <p><b>暗棋阵营</b>：<b>没有固定先手</b>，谁先翻开哪色棋子就获得该颜色阵营；对方自动获得另一颜色。</p>
+          <p><b>回合操作（二选一）</b>：① 翻任意一张背面朝上的棋子；② 移动一张已翻开的己方棋子（上下左右走一格）。<b>豹可斜向飞</b>（8 方向移动）。</p>
+          <p><b>等级</b>：象 8 ＞ 狮 7 ＞ 虎 6 ＞ 豹 5 ＞ 狼 4 ＞ 狗 3 ＞ 猫 2 ＞ 鼠 1。大吃小。</p>
+          <p><b>特殊规则</b>：<b>只有猫能吃鼠</b>；<b>象不能吃鼠</b>；<b>鼠能吃象</b>（以小博大）。</p>
+          <p><b>大本营</b>：中央方格四个角点均可进入，但营内同时最多一颗棋子；敌方不能吃或碰营内棋子，营内棋子可以移动或吃掉四个入口点上的敌棋。</p>
+          <p><b>对死</b>：敌我两个相同文字棋子相撞 → <b>双方同归于尽</b>（一起死亡）。</p>
+          <p><b>胜负</b>：消灭所有敌棋即获胜。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ========== 游戏主区 ========== -->
+  <div id="game-screen" class="game-screen hidden">
+    <div class="board-wrap">
+      <div id="board" class="board-intersection"></div>
+    </div>
+    <aside id="panel" class="panel">
+      <h2 class="panel-title">暗兽棋</h2>
+
+      <div id="turn-info" class="turn-info">
+        <span id="turn-dot" class="turn-dot red"></span>
+        <span id="turn-text">红方行棋</span>
+      </div>
+      <div class="move-count">第 <span id="move-count">1</span> 手</div>
+      <div id="action-hint" class="action-hint">可选：翻一张未知牌 / 移动已翻己方棋子（豹可斜飞 / 同级对死）</div>
+
+      <div class="captured-section">
+        <div class="captured-block">
+          <div class="captured-label"><span class="loss-dot black"></span>黑方损失</div>
+          <div id="captured-2" class="captured-list"></div>
+          <div class="alive-count">存活 <span id="alive-2">8</span></div>
+        </div>
+        <div class="captured-block">
+          <div class="captured-label"><span class="loss-dot red"></span>红方损失</div>
+          <div id="captured-1" class="captured-list"></div>
+          <div class="alive-count">存活 <span id="alive-1">8</span></div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-undo" class="btn">悔棋</button>
+        <button id="btn-restart" class="btn">重开</button>
+        <button id="btn-menu" class="btn">返回菜单</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========== AI 思考提示 ========== -->
+  <div id="ai-thinking" class="ai-thinking hidden">AI 思考中…</div>
+
+  <!-- ========== 结算遮罩 ========== -->
+  <div id="game-over" class="overlay hidden">
+    <div class="card over-card">
+      <h2 id="winner-text" class="winner-text">红方胜</h2>
+      <div class="btn-group">
+        <button id="btn-again" class="btn btn-primary">再来一局</button>
+        <button id="btn-back-menu" class="btn">返回菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+  <script src="ai.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
