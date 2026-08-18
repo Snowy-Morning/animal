@@ -21,7 +21,7 @@ function createRoom(): void {
 }
 function joinRoom(): void {
   error.value = '';
-  if (roomId.value.trim().length !== 6) { error.value = '请输入 6 位房间号'; return; }
+  if (!/^\d{6}$/.test(roomId.value.trim())) { error.value = '请输入 6 位数字房间号'; return; }
   router.push(`/room/${roomId.value.trim()}`);
 }
 </script>

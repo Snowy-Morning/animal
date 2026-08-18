@@ -1,8 +1,9 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
   afterAction,
   applyAction,
+  countAlive,
   createState,
   getAllLegalActions,
   getLastSameTypeTieWinner,
@@ -41,12 +42,15 @@ type Room = {
   id: string;
   catOnlyCanCaptureRat: boolean;
   clients: [WebSocket | null, WebSocket | null];
+  sessionTokens: [string | null, string | null];
+  disconnectTimers: [ReturnType<typeof setTimeout> | null, ReturnType<typeof setTimeout> | null];
   state: GameState | null;
   firstTurn: FirstTurnState | null;
   history: ServerHistoryEntry[];
   undoRequester: 0 | 1 | null;
 };
 
+const RECONNECT_GRACE_MS = 30_000;
 const rooms = new Map<string, Room>();
 const clients = new Map<WebSocket, { room: Room; playerId: 0 | 1 }>();
 const wss = new WebSocketServer({ host: '0.0.0.0', port: 3000 });
@@ -85,6 +89,7 @@ function serializeState(game: GameState): SerializedGameState {
     catOnlyCanCaptureRat: game.catOnlyCanCaptureRat,
     turnCount: game.turnCount,
     captured: game.captured,
+    aliveCounts: { 1: countAlive(game.board, 1), 2: countAlive(game.board, 2) },
     gameOver: game.gameOver,
     winner: game.winner,
     lastRevealedOwner: game.lastRevealedOwner,
@@ -141,6 +146,8 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
       id: roomId(),
       catOnlyCanCaptureRat: message.catOnlyCanCaptureRat,
       clients: [socket, null],
+      sessionTokens: [randomBytes(24).toString('hex'), null],
+      disconnectTimers: [null, null],
       state: null,
       firstTurn: null,
       history: [],
@@ -148,17 +155,43 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     };
     rooms.set(room.id, room);
     clients.set(socket, { room, playerId: 0 });
-    send(socket, { type: 'room_created', roomId: room.id, playerId: 0 });
+    send(socket, { type: 'room_created', roomId: room.id, playerId: 0, sessionToken: room.sessionTokens[0]! });
     broadcast(room, 'room_state');
     return;
   }
   if (message.type === 'join_room') {
     if (connection) return reject(socket, '你已经在房间中');
+    if (!/^\d{6}$/.test(message.roomId)) return reject(socket, '房间号格式无效');
     const room = rooms.get(message.roomId);
-    if (!room || room.clients[1] || room.state) return reject(socket, '房间不存在或已开始');
+    if (!room || room.clients[1] || room.sessionTokens[1] || room.state) return reject(socket, '房间不存在或已开始');
     room.clients[1] = socket;
+    room.sessionTokens[1] = randomBytes(24).toString('hex');
     clients.set(socket, { room, playerId: 1 });
-    send(socket, { type: 'room_joined', roomId: room.id, playerId: 1 });
+    send(socket, { type: 'room_joined', roomId: room.id, playerId: 1, sessionToken: room.sessionTokens[1] });
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (message.type === 'resume_room') {
+    if (connection) return reject(socket, '你已经在房间中');
+    const room = rooms.get(message.roomId);
+    if (!room) return reject(socket, '房间已失效');
+    const sessionPlayerId = room.sessionTokens.findIndex((token) => token === message.sessionToken);
+    if (sessionPlayerId !== 0 && sessionPlayerId !== 1) return reject(socket, '重连凭据无效');
+    if (room.clients[sessionPlayerId]) return reject(socket, '该玩家已经在线');
+    const timer = room.disconnectTimers[sessionPlayerId];
+    if (timer) clearTimeout(timer);
+    room.disconnectTimers[sessionPlayerId] = null;
+    let playerId = sessionPlayerId as 0 | 1;
+    if (sessionPlayerId === 1 && !room.sessionTokens[0]) {
+      room.sessionTokens = [room.sessionTokens[1], null];
+      room.clients = [socket, null];
+      room.disconnectTimers = [null, null];
+      playerId = 0;
+    } else {
+      room.clients[playerId] = socket;
+    }
+    clients.set(socket, { room, playerId });
+    send(socket, { type: 'room_resumed', roomId: room.id, playerId, sessionToken: message.sessionToken });
     broadcast(room, 'room_state');
     return;
   }
@@ -292,8 +325,42 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     return;
   }
   if (message.type === 'leave_room') {
-    disconnect(socket);
+    leaveRoom(socket);
   }
+}
+
+function removePlayer(room: Room, playerId: 0 | 1): void {
+  const timer = room.disconnectTimers[playerId];
+  if (timer) clearTimeout(timer);
+  room.disconnectTimers[playerId] = null;
+  room.clients[playerId] = null;
+  room.sessionTokens[playerId] = null;
+  room.state = null;
+  room.firstTurn = null;
+  room.history = [];
+  room.undoRequester = null;
+
+  if (!room.clients.some(Boolean) && !room.sessionTokens.some(Boolean)) {
+    rooms.delete(room.id);
+    return;
+  }
+
+  if (!room.clients[0] && room.clients[1] && !room.sessionTokens[0]) {
+    const newHost = room.clients[1];
+    room.clients = [newHost, null];
+    room.sessionTokens = [room.sessionTokens[1], null];
+    room.disconnectTimers = [room.disconnectTimers[1], null];
+    clients.set(newHost, { room, playerId: 0 });
+  }
+  room.clients.forEach((peer) => { if (peer) send(peer, { type: 'player_left' }); });
+  broadcast(room, 'room_state');
+}
+
+function leaveRoom(socket: WebSocket): void {
+  const connection = clients.get(socket);
+  if (!connection) return;
+  clients.delete(socket);
+  removePlayer(connection.room, connection.playerId);
 }
 
 function disconnect(socket: WebSocket): void {
@@ -302,23 +369,8 @@ function disconnect(socket: WebSocket): void {
   const { room, playerId } = connection;
   clients.delete(socket);
   room.clients[playerId] = null;
-  room.state = null;
-  room.firstTurn = null;
-  room.history = [];
-  room.undoRequester = null;
-
-  if (!room.clients.some(Boolean)) {
-    rooms.delete(room.id);
-    return;
-  }
-
-  if (!room.clients[0] && room.clients[1]) {
-    const newHost = room.clients[1];
-    room.clients = [newHost, null];
-    clients.set(newHost, { room, playerId: 0 });
-  }
-  room.clients.forEach((peer) => { if (peer) send(peer, { type: 'player_left' }); });
-  broadcast(room, 'room_state');
+  if (room.disconnectTimers[playerId]) clearTimeout(room.disconnectTimers[playerId]!);
+  room.disconnectTimers[playerId] = setTimeout(() => removePlayer(room, playerId), RECONNECT_GRACE_MS);
 }
 
 wss.on('connection', (socket) => {

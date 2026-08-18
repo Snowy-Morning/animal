@@ -499,10 +499,12 @@ export function afterAction(state: GameState, action: Action, tieWinner: Owner |
   }
   state.turnCount++;
   state.currentPlayerId = (1 - player) as 0 | 1;
-  const winner = tieWinner ?? checkWinner(
-    state.board,
-    state.playerOwners[player],
-    state.playerOwners[1 - player],
+  const playerOwner = state.playerOwners[player];
+  const opponentOwner = state.playerOwners[1 - player];
+  const winner = tieWinner ?? (
+    playerOwner != null && countAlive(state.board, playerOwner) === 0
+      ? opponentOwner
+      : checkWinner(state.board, playerOwner, opponentOwner)
   );
   if (winner) {
     state.gameOver = true;

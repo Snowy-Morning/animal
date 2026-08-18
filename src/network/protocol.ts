@@ -5,6 +5,7 @@ export type FirstTurnGuess = 'heads' | 'tails';
 export type ClientMessage =
   | { type: 'create_room'; catOnlyCanCaptureRat: boolean }
   | { type: 'join_room'; roomId: string }
+  | { type: 'resume_room'; roomId: string; sessionToken: string }
   | { type: 'start_game' }
   | { type: 'restart_game' }
   | { type: 'guess_first_turn'; guess: FirstTurnGuess }
@@ -35,6 +36,7 @@ export type SerializedGameState = {
   catOnlyCanCaptureRat: boolean;
   turnCount: number;
   captured: Record<Owner, Piece[]>;
+  aliveCounts: Record<Owner, number>;
   gameOver: boolean;
   winner: Owner | null;
   lastRevealedOwner: Owner | null;
@@ -54,8 +56,9 @@ export type RoomState = {
 };
 
 export type ServerMessage =
-  | { type: 'room_created'; roomId: string; playerId: 0 }
-  | { type: 'room_joined'; roomId: string; playerId: 1 }
+  | { type: 'room_created'; roomId: string; playerId: 0; sessionToken: string }
+  | { type: 'room_joined'; roomId: string; playerId: 1; sessionToken: string }
+  | { type: 'room_resumed'; roomId: string; playerId: 0 | 1; sessionToken: string }
   | { type: 'room_state'; state: RoomState }
   | { type: 'game_started'; state: RoomState }
   | { type: 'first_turn_result'; outcome: FirstTurnGuess; winnerPlayerId: 0 | 1 | null }

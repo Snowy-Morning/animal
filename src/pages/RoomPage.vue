@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import GameBoard from '@/components/GameBoard.vue';
 import {
-  countAlive,
   getPieceAt,
   getPieceMoves,
   PIECE_TYPES,
@@ -31,6 +30,12 @@ const incomingUndo = ref(false);
 const restartPending = ref(false);
 const gameVersion = ref(0);
 let socket: WebSocket | null = null;
+let reconnectTimer: number | null = null;
+let leavingRoom = false;
+
+function sessionKey(roomId: string): string {
+  return `animal-room-session:${roomId}`;
+}
 
 const isPlaying = computed(
   () =>
@@ -96,11 +101,11 @@ function send(message: object): void {
 
 function handleRoomState(room: RoomState): void {
   const previousStatus = roomState.value?.status;
-  const restartingFinishedGame = previousStatus === 'finished' && room.status === 'guessing' && room.guessRound === 1;
+  const startingNewGuess = previousStatus !== 'guessing' && room.status === 'guessing' && room.guessRound === 1;
   roomState.value = room;
   playerId.value = room.playerId;
 
-  if (restartingFinishedGame) {
+  if (startingNewGuess) {
     firstTurnResult.value = '';
   }
 
@@ -124,9 +129,11 @@ function handleRoomState(room: RoomState): void {
 }
 
 function handleMessage(message: ServerMessage): void {
-  if (message.type === 'room_created' || message.type === 'room_joined') {
+  if (message.type === 'room_created' || message.type === 'room_joined' || message.type === 'room_resumed') {
     playerId.value = message.playerId;
     roomIdInput.value = message.roomId;
+    sessionStorage.setItem(sessionKey(message.roomId), message.sessionToken);
+    roomError.value = '';
 
     if (message.type === 'room_created' && route.params.roomId === 'new') {
       void router.replace(`/room/${message.roomId}`);
@@ -166,6 +173,11 @@ function handleMessage(message: ServerMessage): void {
   if (message.type === 'error') {
     roomError.value = message.message;
     undoPending.value = false;
+    if ((message.message === '房间已失效' || message.message === '重连凭据无效') && roomIdInput.value) {
+      sessionStorage.removeItem(sessionKey(roomIdInput.value));
+      leavingRoom = true;
+      socket?.close();
+    }
     return;
   }
 
@@ -179,18 +191,36 @@ function handleMessage(message: ServerMessage): void {
 function connect(type: 'create_room' | 'join_room'): void {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const address = import.meta.env.VITE_WEBSOCKET_URL || `${protocol}//${location.hostname}:3000`;
+  const roomId = roomIdInput.value;
+  const token = roomId ? sessionStorage.getItem(sessionKey(roomId)) : null;
   socket = new WebSocket(address);
-  socket.onopen = () =>
-    send(
-      type === 'create_room'
-        ? { type, catOnlyCanCaptureRat: catOnly.value }
-        : { type, roomId: roomIdInput.value },
-    );
+  socket.onopen = () => {
+    if (token && roomId) {
+      send({ type: 'resume_room', roomId, sessionToken: token });
+    } else {
+      send(
+        type === 'create_room'
+          ? { type, catOnlyCanCaptureRat: catOnly.value }
+          : { type, roomId },
+      );
+    }
+  };
   socket.onmessage = (event) => {
     handleMessage(JSON.parse(event.data) as ServerMessage);
   };
   socket.onerror = () => {
     roomError.value = '无法连接联机服务端';
+  };
+  socket.onclose = () => {
+    socket = null;
+    if (leavingRoom) return;
+    roomError.value = '联机服务端连接已断开，正在重连';
+    if (reconnectTimer === null) {
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect(type);
+      }, 1000);
+    }
   };
 }
 
@@ -234,6 +264,14 @@ function select(r: number, c: number): void {
 }
 
 function leave(): void {
+  leavingRoom = true;
+  if (reconnectTimer !== null) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (roomIdInput.value) {
+    sessionStorage.removeItem(sessionKey(roomIdInput.value));
+  }
   const currentSocket = socket;
   socket = null;
   if (currentSocket?.readyState === WebSocket.OPEN) {
@@ -273,7 +311,8 @@ async function copy(): Promise<void> {
 }
 
 function alive(owner: Owner): number {
-  return state.value ? countAlive(state.value.board, owner) : 8;
+  return roomState.value?.gameState?.aliveCounts?.[owner]
+    ?? 8 - (state.value?.captured[owner].length ?? 0);
 }
 
 function start(): void {
@@ -317,11 +356,13 @@ function respond(accepted: boolean): void {
 onMounted(() => connect(route.params.roomId === 'new' ? 'create_room' : 'join_room'));
 
 onBeforeUnmount(() => {
+  leavingRoom = true;
+  if (reconnectTimer !== null) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   const currentSocket = socket;
   socket = null;
-  if (currentSocket?.readyState === WebSocket.OPEN) {
-    currentSocket.send(JSON.stringify({ type: 'leave_room' }));
-  }
   currentSocket?.close();
 });
 </script>
