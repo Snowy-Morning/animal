@@ -27,16 +27,8 @@ body {
   min-height: 100vh;
   background: var(--paper);
   background-image:
-    radial-gradient(
-      circle at 20% 30%,
-      rgba(180, 140, 80, 0.12),
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 80% 70%,
-      rgba(180, 140, 80, 0.12),
-      transparent 45%
-    );
+    radial-gradient(circle at 20% 30%, rgba(180, 140, 80, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(180, 140, 80, 0.12), transparent 45%);
   font-family: "Noto Serif SC", "STKaiti", "KaiTi", serif;
   color: var(--ink);
   display: flex;
@@ -44,6 +36,7 @@ body {
   justify-content: center;
   padding: 20px;
 }
+/* 遮罩层 */
 .overlay {
   position: fixed;
   inset: 0;
@@ -54,6 +47,7 @@ body {
   z-index: 100;
   backdrop-filter: blur(2px);
 }
+/* 通用内容卡片 */
 .card {
   background: var(--paper);
   border: 3px solid var(--wood-border);
@@ -63,10 +57,12 @@ body {
     0 16px 48px rgba(0, 0, 0, 0.45),
     inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
+/* 开始界面卡片 */
 .start-card {
   text-align: center;
   max-width: 460px;
 }
+/* 游戏标题 */
 .title {
   font-family: "Ma Shan Zheng", "STKaiti", serif;
   font-size: 68px;
@@ -76,16 +72,19 @@ body {
   text-shadow: 3px 3px 0 rgba(109, 76, 61, 0.15);
   line-height: 1;
 }
+/* 标题副文本 */
 .subtitle {
   margin: 6px 0 28px;
   color: var(--wood-border);
   letter-spacing: 6px;
   font-size: 14px;
 }
+/* 选项分组 */
 .option-group {
   margin: 16px 0;
   text-align: left;
 }
+/* 选项标签 */
 .option-label {
   display: inline-flex;
   align-items: center;
@@ -97,6 +96,7 @@ body {
   font-size: 15px;
   letter-spacing: 2px;
 }
+/* 选项标签图标 */
 .option-label-icon {
   display: block;
   width: 18px;
@@ -106,23 +106,29 @@ body {
   mask: var(--icon) center / contain no-repeat;
   -webkit-mask: var(--icon) center / contain no-repeat;
 }
+/* 瞄准图标 */
 .icon-aiming {
   --icon: url('/home/mingcute--aiming-line.svg');
 }
+/* 饼干图标 */
 .icon-cookie {
   --icon: url('/home/mingcute--cookie-line.svg');
 }
+/* AI 图标 */
 .icon-ai {
   --icon: url('/home/mingcute--ai-line.svg');
 }
+/* 空投图标 */
 .icon-airdrop {
   --icon: url('/home/mingcute--airdrop-line.svg');
 }
+/* 选项列表 */
 .options {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
+/* 单选选项 */
 .radio {
   display: inline-flex;
   align-items: center;
@@ -135,19 +141,23 @@ body {
   font-size: 15px;
   transition: all 0.2s;
 }
+/* 单选选项悬停状态 */
 .radio:hover {
   background: var(--wood-light);
   color: #fff;
 }
+/* 单选控件 */
 .radio input {
   accent-color: var(--red);
   width: 16px;
   height: 16px;
 }
+/* 规则区域 */
 .rules {
   margin-top: 20px;
   text-align: left;
 }
+/* 规则折叠标题 */
 .rules summary {
   cursor: pointer;
   color: var(--wood-border);
@@ -155,14 +165,17 @@ body {
   text-align: center;
   letter-spacing: 2px;
 }
+/* 规则内容 */
 .rules-content {
   margin-top: 12px;
   font-size: 13px;
   line-height: 1.8;
 }
+/* 规则段落 */
 .rules-content p {
   margin: 6px 0;
 }
+/* 通用按钮 */
 .btn {
   font-family: inherit;
   font-size: 16px;
@@ -175,39 +188,46 @@ body {
   transition: all 0.2s;
   letter-spacing: 2px;
 }
+/* 通用按钮悬停状态 */
 .btn:hover {
   background: var(--wood-light);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   color: #fff;
 }
+/* 局域网房间和选项区域 */
 .lan-room,
 .lan-options {
   margin-top: 18px;
   display: grid;
   gap: 10px;
 }
+/* 局域网提示 */
 .lan-note {
   margin: 0;
   color: var(--wood-border);
   font-size: 13px;
   line-height: 1.5;
 }
+/* 局域网操作区 */
 .lan-actions {
   display: grid;
   gap: 8px;
 }
+/* 加入房间行 */
 .join-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+/* 房间输入框容器 */
 .room-input-wrap {
   position: relative;
   min-width: 0;
   flex: 1;
   height: 44px;
 }
+/* 局域网按钮和房间输入框尺寸 */
 .lan-actions > .btn,
 .join-row .btn,
 .room-input {
@@ -216,6 +236,7 @@ body {
   padding-top: 0;
   padding-bottom: 0;
 }
+/* 房间号输入框 */
 .room-input {
   width: 100%;
   border: 2px solid var(--wood-border);
@@ -228,9 +249,11 @@ body {
   text-align: center;
   letter-spacing: 3px;
 }
+/* 房间号输入框聚焦状态 */
 .room-input:focus {
   border-color: var(--red);
 }
+/* 清除房间号按钮 */
 .clear-room-input {
   position: absolute;
   top: 11px;
@@ -248,10 +271,12 @@ body {
   cursor: pointer;
   font: 18px/22px sans-serif;
 }
+/* 清除按钮悬停状态 */
 .clear-room-input:hover {
   background: var(--wood-border);
   color: #fff;
 }
+/* 房间状态区域 */
 .room-status {
   display: grid;
   gap: 8px;
@@ -259,24 +284,29 @@ body {
   font-size: 13px;
   line-height: 1.5;
 }
+/* 房间状态文本和错误提示 */
 .room-status p,
 .room-error {
   margin: 0;
 }
+/* 房间错误提示 */
 .room-error {
   color: var(--red);
 }
+/* 主要按钮 */
 .btn-primary {
   background: var(--red);
   color: #fff;
   border-color: #8d1c1e;
   font-weight: 700;
 }
+/* 游戏主区域 */
 .game-screen {
   display: flex;
   gap: 32px;
   align-items: flex-start;
 }
+/* 棋盘容器 */
 .board-wrap {
   position: relative;
   border: var(--board-border) solid var(--wood-border);
@@ -286,6 +316,7 @@ body {
     inset 0 0 40px rgba(0, 0, 0, 0.3),
     0 14px 40px rgba(0, 0, 0, 0.45);
 }
+/* 棋盘交叉点区域 */
 .board-intersection {
   position: relative;
   width: var(--board-size);
@@ -293,6 +324,7 @@ body {
   aspect-ratio: 1;
   background: transparent;
 }
+/* 棋盘网格伪元素 */
 .board-intersection:before {
   content: "";
   position: absolute;
@@ -307,6 +339,7 @@ body {
     linear-gradient(to bottom, var(--line) var(--track-width), transparent var(--track-width));
   background-size: var(--cell-size) var(--cell-size);
 }
+/* 棋盘营地 */
 .camp-box {
   position: absolute;
   top: calc(var(--pad) + var(--cell-size));
@@ -314,22 +347,11 @@ body {
   width: var(--cell-size);
   height: var(--cell-size);
   background:
-    linear-gradient(
-      to bottom right,
-      transparent calc(50% - var(--track-width) / 2),
-      var(--line) calc(50% - var(--track-width) / 2),
-      var(--line) calc(50% + var(--track-width) / 2),
-      transparent calc(50% + var(--track-width) / 2)
-    ),
-    linear-gradient(
-      to top right,
-      transparent calc(50% - var(--track-width) / 2),
-      var(--line) calc(50% - var(--track-width) / 2),
-      var(--line) calc(50% + var(--track-width) / 2),
-      transparent calc(50% + var(--track-width) / 2)
-    );
+    linear-gradient(to bottom right, transparent calc(50% - var(--track-width) / 2), var(--line) calc(50% - var(--track-width) / 2), var(--line) calc(50% + var(--track-width) / 2), transparent calc(50% + var(--track-width) / 2)),
+    linear-gradient(to top right, transparent calc(50% - var(--track-width) / 2), var(--line) calc(50% - var(--track-width) / 2), var(--line) calc(50% + var(--track-width) / 2), transparent calc(50% + var(--track-width) / 2));
   z-index: 3;
 }
+/* 棋盘落点、棋子和提示的通用定位 */
 .dot,
 .piece,
 .hint {
@@ -342,12 +364,14 @@ body {
   height: var(--piece-size);
   border-radius: 50%;
 }
+/* 棋盘落点 */
 .dot {
   z-index: 4;
   border: 0;
   background: transparent;
   cursor: pointer;
 }
+/* 落点伪元素 */
 .dot:after {
   content: "";
   width: 10px;
@@ -357,10 +381,12 @@ body {
   display: block;
   margin: auto;
 }
+/* 落点悬停伪元素 */
 .dot:hover:after {
   background: var(--gold);
   box-shadow: 0 0 10px var(--gold);
 }
+/* 棋子 */
 .piece {
   perspective: 800px;
   z-index: 5;
@@ -370,18 +396,22 @@ body {
     top 0.32s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.3s;
 }
+/* 营地中的棋子 */
 .piece.in-camp {
   z-index: 7;
 }
+/* 棋子内部翻转容器 */
 .piece-inner {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* 翻转棋子内部容器 */
 .piece.flipped .piece-inner {
   transform: rotateY(180deg);
 }
+/* 棋子面 */
 .piece-face {
   position: absolute;
   inset: 0;
@@ -392,38 +422,34 @@ body {
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
+/* 棋子正面 */
 .piece-face.front {
-  background: radial-gradient(
-    circle at 32% 28%,
-    #fffdf6 0%,
-    var(--piece-fill) 62%,
-    #d9c49a 100%
-  );
+  background: radial-gradient(circle at 32% 28%, #fffdf6 0%, var(--piece-fill) 62%, #d9c49a 100%);
   border: 3px solid var(--wood-border);
   color: var(--ink);
   transform: rotateY(180deg);
   overflow: hidden;
 }
+/* 棋子背面 */
 .piece-face.back {
   background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.1) 0 6px,
-      transparent 6px 14px
-    ),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0 6px, transparent 6px 14px),
     radial-gradient(circle at 30% 30%, #6a3e27, var(--back-pattern));
   border: 3px solid #2a170b;
 }
+/* 棋子图标 */
 .piece-icon {
   pointer-events: none;
   filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.16));
 }
+/* 经典棋子图标 */
 .classic-icon {
   display: block;
   width: calc(var(--cell-size) * 0.40);
   height: calc(var(--cell-size) * 0.40);
   object-fit: contain;
 }
+/* 棋子名称 */
 .piece-name {
   pointer-events: none;
   position: absolute;
@@ -436,26 +462,19 @@ body {
   color: currentColor;
   opacity: 0.01;
 }
+/* 红方棋子正面 */
 .owner-1 .front {
   color: var(--red);
   border-color: var(--red);
-  background: radial-gradient(
-    circle at 32% 28%,
-    #fff9f8 0%,
-    #f7ddd9 62%,
-    #e7b9b1 100%
-  );
+  background: radial-gradient(circle at 32% 28%, #fff9f8 0%, #f7ddd9 62%, #e7b9b1 100%);
 }
+/* 蓝方棋子正面 */
 .owner-2 .front {
   color: var(--black);
   border-color: var(--black);
-  background: radial-gradient(
-    circle at 32% 28%,
-    #f8fbff 0%,
-    #dbeafe 62%,
-    #a9cbed 100%
-  );
+  background: radial-gradient(circle at 32% 28%, #f8fbff 0%, #dbeafe 62%, #a9cbed 100%);
 }
+/* 选中棋子正面 */
 .piece.selected .piece-face {
   box-shadow:
     0 0 0 3px var(--gold),
@@ -469,6 +488,7 @@ body {
       0 6px 24px rgba(201, 162, 39, 0.95);
   }
 }
+/* 移动提示 */
 .hint {
   z-index: 8;
   pointer-events: auto;
@@ -476,6 +496,7 @@ body {
   align-items: center;
   justify-content: center;
 }
+/* 移动提示伪元素 */
 .hint:after {
   content: "";
   width: 14px;
@@ -485,9 +506,11 @@ body {
   box-shadow: 0 0 10px rgba(201, 162, 39, 0.7);
   animation: blink 1.2s ease-in-out infinite;
 }
+/* 可吃子提示 */
 .hint.eat {
   border: 3px solid rgba(195, 39, 43, 0.8);
 }
+/* 可吃子提示伪元素 */
 .hint.eat:after {
   width: 70%;
   height: 70%;
@@ -495,10 +518,12 @@ body {
   border: 2px solid rgba(195, 39, 43, 0.6);
   animation: none;
 }
+/* 和棋提示 */
 .hint.tie {
   border: 3px dashed var(--tie-color);
   animation: spin 4s linear infinite;
 }
+/* 和棋提示伪元素 */
 .hint.tie:after {
   display: none;
 }
@@ -513,6 +538,7 @@ body {
     transform: rotate(360deg);
   }
 }
+/* 游戏信息面板 */
 .panel {
   width: 250px;
   background: var(--paper);
@@ -521,6 +547,7 @@ body {
   padding: 22px 20px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
 }
+/* 面板标题 */
 .panel-title {
   font-family: "Ma Shan Zheng", serif;
   color: var(--red);
@@ -529,6 +556,7 @@ body {
   margin: 0 0 18px;
   letter-spacing: 6px;
 }
+/* 回合信息 */
 .turn-info {
   display: flex;
   align-items: center;
@@ -537,45 +565,55 @@ body {
   margin-bottom: 6px;
   font-weight: 700;
 }
+/* 回合和被吃棋子颜色圆点 */
 .turn-dot,
 .loss-dot {
   border-radius: 50%;
   display: inline-block;
 }
+/* 当前回合圆点 */
 .turn-dot {
   width: 16px;
   height: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
+/* 红方圆点 */
 .turn-dot.red,
 .loss-dot.red {
   background: var(--red);
 }
+/* 蓝方圆点 */
 .turn-dot.black,
 .loss-dot.black {
   background: var(--black);
 }
+/* 中立回合圆点 */
 .turn-dot.neutral {
   background: var(--wood-dark);
 }
+/* 步数统计 */
 .move-count {
   color: var(--wood-border);
   margin-bottom: 4px;
   font-size: 14px;
 }
+/* 操作提示 */
 .action-hint {
   opacity: 0.75;
   font-size: 12px;
   margin-bottom: 16px;
   line-height: 1.5;
 }
+/* 被吃棋子区域 */
 .captured-section {
   border-top: 1px dashed var(--wood-dark);
   padding-top: 14px;
 }
+/* 被吃棋子分组 */
 .captured-block {
   margin-bottom: 12px;
 }
+/* 被吃棋子标签 */
 .captured-label {
   font-size: 13px;
   color: var(--wood-border);
@@ -584,17 +622,20 @@ body {
   align-items: center;
   justify-content: space-between;
 }
+/* 被吃棋子颜色圆点 */
 .loss-dot {
   width: 9px;
   height: 9px;
   margin-right: 6px;
 }
+/* 被吃棋子列表 */
 .captured-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   min-height: 28px;
 }
+/* 被吃棋子 */
 .cap-piece {
   display: flex;
   align-items: center;
@@ -608,32 +649,100 @@ body {
   border: 1.5px solid;
   opacity: 0.75;
 }
+/* 被吃棋子图片 */
 .cap-piece > img {
   display: block;
   width: 21px;
   height: 21px;
   object-fit: contain;
 }
+/* 红方被吃棋子 */
 .cap-piece.red {
   color: var(--red);
   border-color: var(--red);
 }
+/* 蓝方被吃棋子 */
 .cap-piece.black {
   color: var(--black);
   border-color: var(--black);
 }
+/* 存活数量 */
 .alive-count {
   margin-top: 4px;
   color: var(--wood-border);
   font-size: 12px;
   text-align: right;
 }
+/* 按钮组 */
 .btn-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 18px;
 }
+/* 撤销操作遮罩 */
+.undo-overlay {
+  background: rgba(40, 30, 20, 0.68);
+}
+/* 撤销确认卡片 */
+.undo-card {
+  width: min(360px, calc(100vw - 40px));
+  padding: 28px 30px 26px;
+  text-align: center;
+  border-color: var(--wood-dark);
+  box-shadow:
+    0 18px 48px rgba(43, 29, 17, 0.42),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+/* 撤销图标 */
+.undo-mark {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 14px;
+  border: 2px solid var(--wood-dark);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--wood-border);
+}
+/* 撤销图标伪元素 */
+.undo-mark::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  background-color: currentColor;
+  -webkit-mask: url('/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
+  mask: url('/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
+}
+/* 撤销确认标题 */
+.undo-card h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+/* 撤销确认说明 */
+.undo-card p {
+  margin: 10px 0 0;
+  color: var(--wood-border);
+  font-size: 14px;
+  line-height: 1.6;
+}
+/* 撤销操作按钮区 */
+.undo-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+/* 撤销操作按钮 */
+.undo-actions .btn {
+  padding: 10px 8px;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+/* AI 思考提示 */
 .ai-thinking {
   position: fixed;
   top: 28px;
@@ -647,15 +756,18 @@ body {
   z-index: 50;
   letter-spacing: 2px;
 }
+/* 获胜文本 */
 .winner-text {
   font-family: "Ma Shan Zheng", serif;
   font-size: 64px;
   margin: 0 0 28px;
   letter-spacing: 6px;
 }
+/* 红方获胜文本 */
 .winner-text.red {
   color: var(--red);
 }
+/* 蓝方获胜文本 */
 .winner-text.black {
   color: var(--black);
 }
@@ -668,14 +780,17 @@ body {
   :root {
     --cell-size: 108px;
   }
+  /* 移动端游戏主区域 */
   .game-screen {
     flex-direction: column;
     align-items: center;
     gap: 20px;
   }
+  /* 移动端信息面板 */
   .panel {
     width: calc(var(--cell-size) * 3 + var(--pad) * 2 + 30px);
   }
+  /* 移动端游戏标题 */
   .title {
     font-size: 52px;
   }
@@ -684,12 +799,15 @@ body {
   :root {
     --cell-size: 80px;
   }
+  /* 小屏内容卡片 */
   .card {
     padding: 28px 22px;
   }
+  /* 小屏选项列表 */
   .options {
     gap: 6px;
   }
+  /* 小屏单选选项 */
   .radio {
     font-size: 13px;
     padding: 7px 9px;
