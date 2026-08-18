@@ -465,8 +465,27 @@ export function createState(
   };
 }
 
+// 返回双方各剩一枚同类型棋子时，主动发起对死的一方。
+export function getLastSameTypeTieWinner(board: Board, action: Action): Owner | null {
+  if (action.type !== 'move' || action.outcome !== 'tie') {
+    return null;
+  }
+  const mover = getPieceAt(board, action.from);
+  const target = getPieceAt(board, action.to);
+  if (
+    mover &&
+    target &&
+    mover.type === target.type &&
+    countAlive(board, mover.owner) === 1 &&
+    countAlive(board, target.owner) === 1
+  ) {
+    return mover.owner;
+  }
+  return null;
+}
+
 // 完成动作后的阵营分配、回合切换和胜负判断。
-export function afterAction(state: GameState, action: Action): void {
+export function afterAction(state: GameState, action: Action, tieWinner: Owner | null = null): void {
   const player = state.currentPlayerId;
   if (action.type === 'reveal' && state.playerOwners[player] == null) {
     const piece = state.board[action.r][action.c];
@@ -480,7 +499,7 @@ export function afterAction(state: GameState, action: Action): void {
   }
   state.turnCount++;
   state.currentPlayerId = (1 - player) as 0 | 1;
-  const winner = checkWinner(
+  const winner = tieWinner ?? checkWinner(
     state.board,
     state.playerOwners[player],
     state.playerOwners[1 - player],

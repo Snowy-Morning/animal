@@ -11,6 +11,7 @@ import {
   createState,
   getPieceAt,
   getPieceMoves,
+  getLastSameTypeTieWinner,
   PIECE_TYPES,
   revertAction,
   type Action,
@@ -39,11 +40,13 @@ const roomError = ref('');
 const playerId = ref<0 | 1 | null>(null);
 const undoRequestPending = ref(false);
 const incomingUndoRequest = ref(false);
+const restartConfirmPending = ref(false);
 let socket: WebSocket | null = null;
 const difficulty = ref(2);
 
 // 保存当前游戏状态。
 const state = ref<GameState | null>(null);
+const gameVersion = ref(0);
 
 // 保存动画和 AI 思考状态。
 const animating = ref(false);
@@ -68,6 +71,7 @@ function menu(): void {
   roomError.value = '';
   undoRequestPending.value = false;
   incomingUndoRequest.value = false;
+  restartConfirmPending.value = false;
   aiThinking.value = false;
 }
 
@@ -91,13 +95,42 @@ function leaveRoom(): void {
 // 按当前规则重新开始游戏。
 function restart(): void {
   if (mode.value === 'lan') {
-    undoRequestPending.value = false;
-    incomingUndoRequest.value = false;
-    menu();
+    if (playerId.value !== 0) {
+      return;
+    }
+    restartConfirmPending.value = true;
     return;
   }
+  restartLocalGame();
+}
+
+// 结算后直接开始下一局。
+function playAgain(): void {
+  if (mode.value === 'lan') {
+    if (playerId.value !== 0) {
+      return;
+    }
+    confirmNetworkRestart();
+    return;
+  }
+  restartLocalGame();
+}
+
+// 在确认后重开联机对局。
+function confirmNetworkRestart(): void {
+  restartConfirmPending.value = false;
+  if (socket?.readyState !== WebSocket.OPEN) {
+    roomError.value = '联机服务端连接已断开';
+    return;
+  }
+  socket.send(JSON.stringify({ type: 'restart_game' }));
+}
+
+// 重开本地对局。
+function restartLocalGame(): void {
   if (state.value) {
     const current = state.value;
+    gameVersion.value += 1;
     state.value = createState(
       current.mode,
       current.aiPlayerId,
@@ -244,6 +277,7 @@ function execute(action: Action): void {
   }
   const game = state.value;
   const previous = { ...game.playerOwners } as [Owner | null, Owner | null];
+  const tieWinner = getLastSameTypeTieWinner(game.board, action);
   const context = applyAction(game.board, action);
   const captured: { piece: Piece; owner: Owner }[] = [];
 
@@ -270,7 +304,7 @@ function execute(action: Action): void {
   };
   game.selected = null;
   game.validMoves = [];
-  afterAction(game, action);
+  afterAction(game, action, tieWinner);
   game.history.push(entry);
 
   // 使用原有延迟播放动作动画并触发 AI。
@@ -343,6 +377,7 @@ function hydrate(room: RoomState): void {
   const board = remote.board.cells.map((row) => row.map((piece) => (piece ? { ...piece } : null))) as Board;
   board.camp = remote.board.camp ? { ...remote.board.camp } : null;
   board.catOnlyCanCaptureRat = remote.board.catOnlyCanCaptureRat;
+  gameVersion.value += 1;
   state.value = {
     ...remote,
     board,
@@ -536,6 +571,7 @@ function alive(owner: Owner): number {
         <div class="camp-box" @click="clickCell(1.5, 1.5)"></div>
         <div
           v-if="state.board.camp"
+          :key="`camp-${gameVersion}-${state.board.camp.id}`"
           class="piece in-camp"
           :class="[
             `owner-${state.board.camp.owner}`,
@@ -568,6 +604,7 @@ function alive(owner: Owner): number {
           <template v-for="(piece, c) in row" :key="`${r}-${c}`">
             <div
               v-if="piece"
+              :key="`piece-${gameVersion}-${piece.id}`"
               class="piece"
               :class="[
                 `owner-${piece.owner}`,
@@ -630,7 +667,7 @@ function alive(owner: Owner): number {
           @click="requestNetworkUndo"
         >请求悔棋</button>
         <button v-else class="btn" @click="undo">悔棋</button>
-        <button class="btn" @click="restart">重开</button>
+        <button v-if="mode !== 'lan' || playerId === 0" class="btn" @click="restart">重开</button>
         <button v-if="mode === 'lan'" class="btn" @click="leaveRoom">退出房间</button>
         <button v-else class="btn" @click="menu">返回菜单</button>
       </div>
@@ -650,6 +687,19 @@ function alive(owner: Owner): number {
     </div>
   </div>
 
+  <!-- 房主重开确认。 -->
+  <div v-if="restartConfirmPending" class="overlay undo-overlay">
+    <div class="card undo-card" role="dialog" aria-modal="true" aria-labelledby="restart-title">
+      <span class="undo-mark" aria-hidden="true"></span>
+      <h2 id="restart-title">确认重新开始</h2>
+      <p>当前对局进度将被清除，确定要重新开始吗？</p>
+      <div class="undo-actions">
+        <button class="btn btn-primary" @click="confirmNetworkRestart">确认重开</button>
+        <button class="btn" @click="restartConfirmPending = false">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- AI 思考提示。 -->
   <div v-if="aiThinking" class="ai-thinking">AI 思考中</div>
 
@@ -658,7 +708,7 @@ function alive(owner: Owner): number {
     <div class="card over-card">
       <h2 class="winner-text" :class="state.winner === 1 ? 'red' : 'black'">{{ state.winner === 1 ? '红方胜' : '黑方胜' }}</h2>
       <div class="btn-group">
-        <button class="btn btn-primary" @click="restart">再来一局</button>
+        <button class="btn btn-primary" @click="playAgain">再来一局</button>
         <button class="btn" @click="menu">返回菜单</button>
       </div>
     </div>

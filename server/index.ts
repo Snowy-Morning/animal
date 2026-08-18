@@ -5,6 +5,7 @@ import {
   applyAction,
   createState,
   getAllLegalActions,
+  getLastSameTypeTieWinner,
   getPieceMoves,
   revertAction,
   type Action,
@@ -132,10 +133,10 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
   }
   if (!connection) return reject(socket, '请先创建或加入房间');
   const { room, playerId } = connection;
-  if (message.type === 'start_game') {
-    if (playerId !== 0) return reject(socket, '只有房主可以开始');
+  if (message.type === 'start_game' || message.type === 'restart_game') {
+    if (playerId !== 0) return reject(socket, '只有房主可以开始或重开');
     if (!room.clients[1]) return reject(socket, '请等待第二位玩家加入');
-    if (room.state) return reject(socket, '游戏已经开始');
+    if (message.type === 'start_game' && room.state) return reject(socket, '游戏已经开始');
     room.state = createState('pvp', 1, 2, room.catOnlyCanCaptureRat);
     room.history = [];
     room.undoRequester = null;
@@ -152,6 +153,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     const previousPlayerOwners = [...room.state.playerOwners] as [Owner | null, Owner | null];
     const previousTurnCount = room.state.turnCount;
     const previousLastRevealedOwner = room.state.lastRevealedOwner;
+    const tieWinner = getLastSameTypeTieWinner(room.state.board, action);
     const revertContext = applyAction(room.state.board, action);
     const captured: ServerHistoryEntry['captured'] = [];
     if (action.type === 'move' && revertContext.info.type === 'move' && revertContext.info.target) {
@@ -163,7 +165,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
         room.state.captured[item.owner].push({ ...item.piece });
       }
     }
-    afterAction(room.state, action);
+    afterAction(room.state, action, tieWinner);
     room.history.push({
       revertContext,
       previousPlayerId,

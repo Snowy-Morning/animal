@@ -4,6 +4,7 @@ export type ClientMessage =
   | { type: 'create_room'; catOnlyCanCaptureRat: boolean }
   | { type: 'join_room'; roomId: string }
   | { type: 'start_game' }
+  | { type: 'restart_game' }
   | { type: 'action'; action: Action }
   | { type: 'request_undo' }
   | { type: 'respond_undo'; accepted: boolean }
