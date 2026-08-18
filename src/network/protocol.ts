@@ -13,9 +13,15 @@ export type ClientMessage =
   | { type: 'respond_undo'; accepted: boolean }
   | { type: 'leave_room' };
 
+export type HiddenPiece = {
+  revealed: false;
+};
+
+export type SerializedPiece = Piece | HiddenPiece;
+
 export type SerializedBoard = {
-  cells: (Piece | null)[][];
-  camp: Piece | null;
+  cells: (SerializedPiece | null)[][];
+  camp: SerializedPiece | null;
   catOnlyCanCaptureRat: boolean;
 };
 

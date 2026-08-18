@@ -10,7 +10,7 @@ import {
   type GameState,
   type Owner,
 } from '@/game/rules';
-import type { RoomState, ServerMessage } from '@/network/protocol';
+import type { RoomState, SerializedPiece, ServerMessage } from '@/network/protocol';
 
 const route = useRoute();
 const router = useRouter();
@@ -57,6 +57,12 @@ function image(type: string): string {
   return `/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
 }
 
+function hydratePiece(piece: SerializedPiece | null, id: string): GameState['board'][number][number] {
+  if (!piece) return null;
+  if ('id' in piece) return { ...piece };
+  return { id, owner: 1, type: 'rat', rank: 1, revealed: false };
+}
+
 function hydrate(room: RoomState): void {
   if (!room.gameState) {
     state.value = null;
@@ -64,10 +70,10 @@ function hydrate(room: RoomState): void {
   }
 
   const remote = room.gameState;
-  const board = remote.board.cells.map((row) =>
-    row.map((piece) => (piece ? { ...piece } : null)),
+  const board = remote.board.cells.map((row, r) =>
+    row.map((piece, c) => hydratePiece(piece, `hidden-${r}-${c}`)),
   ) as GameState['board'];
-  board.camp = remote.board.camp ? { ...remote.board.camp } : null;
+  board.camp = hydratePiece(remote.board.camp, 'hidden-camp');
   board.catOnlyCanCaptureRat = remote.board.catOnlyCanCaptureRat;
   gameVersion.value++;
   state.value = {
@@ -159,7 +165,9 @@ function handleMessage(message: ServerMessage): void {
 }
 
 function connect(type: 'create_room' | 'join_room'): void {
-  socket = new WebSocket(`ws://${location.hostname}:3000`);
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const address = import.meta.env.VITE_WEBSOCKET_URL || `${protocol}//${location.hostname}:3000`;
+  socket = new WebSocket(address);
   socket.onopen = () =>
     send(
       type === 'create_room'
@@ -223,12 +231,33 @@ function leave(): void {
   void router.push('/');
 }
 
-function copy(): void {
-  void navigator.clipboard.writeText(roomIdInput.value);
-  copyFeedback.value = '已复制';
+async function copy(): Promise<void> {
+  const value = roomIdInput.value;
+  if (!value) return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand('copy');
+      input.remove();
+      if (!copied) throw new Error('copy failed');
+    }
+    copyFeedback.value = '已复制';
+  } catch {
+    copyFeedback.value = '复制失败，请手动复制';
+  }
+
   window.setTimeout(() => {
     copyFeedback.value = '';
-  }, 1500);
+  }, 2000);
 }
 
 function alive(owner: Owner): number {

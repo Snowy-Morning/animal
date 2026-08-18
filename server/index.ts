@@ -19,6 +19,7 @@ import type {
   FirstTurnGuess,
   RoomState,
   SerializedGameState,
+  SerializedPiece,
   ServerMessage,
 } from '../src/network/protocol';
 
@@ -64,11 +65,16 @@ function roomId(): string {
   return id;
 }
 
+function serializePiece(piece: Piece | null): SerializedPiece | null {
+  if (!piece) return null;
+  return piece.revealed ? { ...piece } : { revealed: false };
+}
+
 function serializeState(game: GameState): SerializedGameState {
   return {
     board: {
-      cells: game.board.map((row) => row.map((piece) => (piece ? { ...piece } : null))),
-      camp: game.board.camp ? { ...game.board.camp } : null,
+      cells: game.board.map((row) => row.map(serializePiece)),
+      camp: serializePiece(game.board.camp),
       catOnlyCanCaptureRat: game.board.catOnlyCanCaptureRat !== false,
     },
     playerOwners: game.playerOwners,
@@ -231,7 +237,12 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
       previousLastRevealedOwner,
       captured,
     });
-    room.undoRequester = null;
+    if (room.undoRequester !== null) {
+      room.clients.forEach((peer) => {
+        if (peer) send(peer, { type: 'undo_result', accepted: false });
+      });
+      room.undoRequester = null;
+    }
     broadcast(room, 'room_state');
     return;
   }

@@ -1,11 +1,13 @@
 // 导入规则函数、常量和游戏类型。
 import {
+  applyAction,
   canCapture,
   COLS,
   getAllLegalActions,
   getAllRevealActions,
   getPieceAt,
   isCamp,
+  revertAction,
   ROWS,
   type Action,
   type Board,
@@ -141,16 +143,34 @@ export function findBestMove(state: GameState): Promise<Action | null> {
         return;
       }
 
-      // 计算所有合法动作并选出最高分动作。
+      // 计算所有合法动作，并根据难度采用不同决策策略。
       const actions = getAllLegalActions(state.board, owner);
       if (!actions.length) {
         resolve(null);
         return;
       }
+      if (state.aiDepth <= 1) {
+        const captures = actions.filter((action) => action.type === 'move' && action.outcome === 'eat');
+        const choices = captures.length && Math.random() < 0.6 ? captures : actions;
+        resolve(choices[Math.floor(Math.random() * choices.length)]);
+        return;
+      }
+
       let best = actions[0];
       let bestScore = -Infinity;
       for (const action of actions) {
-        const score = scoreAction(state.board, action, owner);
+        let score = scoreAction(state.board, action, owner);
+        if (state.aiDepth >= 3) {
+          const context = applyAction(state.board, action);
+          const opponent = (3 - owner) as Owner;
+          const replies = getAllLegalActions(state.board, opponent);
+          let opponentScore = 0;
+          for (const reply of replies) {
+            opponentScore = Math.max(opponentScore, scoreAction(state.board, reply, opponent));
+          }
+          revertAction(state.board, context);
+          score -= opponentScore * 0.65;
+        }
         if (score > bestScore) {
           bestScore = score;
           best = action;
