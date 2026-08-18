@@ -14,7 +14,18 @@ import {
   type Owner,
   type Piece,
 } from '../src/game/rules';
-import type { ClientMessage, RoomState, SerializedGameState, ServerMessage } from '../src/network/protocol';
+import type {
+  ClientMessage,
+  FirstTurnGuess,
+  RoomState,
+  SerializedGameState,
+  ServerMessage,
+} from '../src/network/protocol';
+
+type FirstTurnState = {
+  round: number;
+  guesses: [FirstTurnGuess | null, FirstTurnGuess | null];
+};
 
 type ServerHistoryEntry = {
   revertContext: ActionContext;
@@ -30,6 +41,7 @@ type Room = {
   catOnlyCanCaptureRat: boolean;
   clients: [WebSocket | null, WebSocket | null];
   state: GameState | null;
+  firstTurn: FirstTurnState | null;
   history: ServerHistoryEntry[];
   undoRequester: 0 | 1 | null;
 };
@@ -74,14 +86,26 @@ function serializeState(game: GameState): SerializedGameState {
 }
 
 function broadcast(room: Room, type: 'room_state' | 'game_started'): void {
-  const status = room.state ? (room.state.gameOver ? 'finished' : 'playing') : room.clients[1] ? 'ready' : 'waiting';
+  const status = room.state
+    ? (room.state.gameOver ? 'finished' : 'playing')
+    : room.firstTurn
+      ? 'guessing'
+      : room.clients[1]
+        ? 'ready'
+        : 'waiting';
   room.clients.forEach((socket, playerId) => {
     if (!socket) return;
+    const currentPlayerId = playerId as 0 | 1;
     const state: RoomState = {
       roomId: room.id,
       playerCount: room.clients.filter(Boolean).length,
       status,
-      playerId: playerId as 0 | 1,
+      playerId: currentPlayerId,
+      ...(room.firstTurn ? {
+        guessRound: room.firstTurn.round,
+        guessSubmitted: room.firstTurn.guesses[currentPlayerId] !== null,
+        opponentGuessSubmitted: room.firstTurn.guesses[1 - currentPlayerId] !== null,
+      } : {}),
       ...(room.state ? { gameState: serializeState(room.state) } : {}),
     };
     send(socket, { type, ...(type === 'game_started' ? { state } : { state }) } as ServerMessage);
@@ -112,6 +136,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
       catOnlyCanCaptureRat: message.catOnlyCanCaptureRat,
       clients: [socket, null],
       state: null,
+      firstTurn: null,
       history: [],
       undoRequester: null,
     };
@@ -136,10 +161,42 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
   if (message.type === 'start_game' || message.type === 'restart_game') {
     if (playerId !== 0) return reject(socket, '只有房主可以开始或重开');
     if (!room.clients[1]) return reject(socket, '请等待第二位玩家加入');
-    if (message.type === 'start_game' && room.state) return reject(socket, '游戏已经开始');
-    room.state = createState('pvp', 1, 2, room.catOnlyCanCaptureRat);
+    if (message.type === 'start_game' && (room.state || room.firstTurn)) return reject(socket, '游戏已经开始或正在猜先');
+    room.state = null;
+    room.firstTurn = { round: 1, guesses: [null, null] };
     room.history = [];
     room.undoRequester = null;
+    broadcast(room, 'room_state');
+    return;
+  }
+  if (message.type === 'guess_first_turn') {
+    if (message.guess !== 'heads' && message.guess !== 'tails') return reject(socket, '猜先选择无效');
+    if (room.state || !room.firstTurn || !room.clients[1]) return reject(socket, '当前不在猜先阶段');
+    if (room.firstTurn.guesses[playerId] !== null) return reject(socket, '本轮已经提交猜先');
+    room.firstTurn.guesses[playerId] = message.guess;
+    const [firstGuess, secondGuess] = room.firstTurn.guesses;
+    if (firstGuess === null || secondGuess === null) {
+      broadcast(room, 'room_state');
+      return;
+    }
+    const outcome: FirstTurnGuess = randomInt(0, 2) === 0 ? 'heads' : 'tails';
+    const winnerPlayerId = firstGuess === outcome && secondGuess !== outcome
+      ? 0
+      : secondGuess === outcome && firstGuess !== outcome
+        ? 1
+        : null;
+    const round = room.firstTurn.round;
+    room.clients.forEach((peer) => {
+      if (peer) send(peer, { type: 'first_turn_result', outcome, winnerPlayerId });
+    });
+    if (winnerPlayerId === null) {
+      room.firstTurn = { round: round + 1, guesses: [null, null] };
+      broadcast(room, 'room_state');
+      return;
+    }
+    room.state = createState('pvp', 1, 2, room.catOnlyCanCaptureRat);
+    room.state.currentPlayerId = winnerPlayerId;
+    room.firstTurn = null;
     broadcast(room, 'game_started');
     return;
   }
@@ -231,10 +288,23 @@ function disconnect(socket: WebSocket): void {
   const { room, playerId } = connection;
   clients.delete(socket);
   room.clients[playerId] = null;
+  room.state = null;
+  room.firstTurn = null;
+  room.history = [];
   room.undoRequester = null;
+
+  if (!room.clients.some(Boolean)) {
+    rooms.delete(room.id);
+    return;
+  }
+
+  if (!room.clients[0] && room.clients[1]) {
+    const newHost = room.clients[1];
+    room.clients = [newHost, null];
+    clients.set(newHost, { room, playerId: 0 });
+  }
   room.clients.forEach((peer) => { if (peer) send(peer, { type: 'player_left' }); });
-  if (!room.clients.some(Boolean)) rooms.delete(room.id);
-  else if (!room.state) broadcast(room, 'room_state');
+  broadcast(room, 'room_state');
 }
 
 wss.on('connection', (socket) => {

@@ -37,6 +37,8 @@ const catOnly = ref(true);
 const roomIdInput = ref('');
 const roomState = ref<RoomState | null>(null);
 const roomError = ref('');
+const firstTurnResult = ref('');
+const copyRoomFeedback = ref('');
 const playerId = ref<0 | 1 | null>(null);
 const undoRequestPending = ref(false);
 const incomingUndoRequest = ref(false);
@@ -69,6 +71,7 @@ function menu(): void {
   roomState.value = null;
   playerId.value = null;
   roomError.value = '';
+  firstTurnResult.value = '';
   undoRequestPending.value = false;
   incomingUndoRequest.value = false;
   restartConfirmPending.value = false;
@@ -119,6 +122,7 @@ function playAgain(): void {
 // 在确认后重开联机对局。
 function confirmNetworkRestart(): void {
   restartConfirmPending.value = false;
+  firstTurnResult.value = '';
   if (socket?.readyState !== WebSocket.OPEN) {
     roomError.value = '联机服务端连接已断开';
     return;
@@ -389,6 +393,7 @@ function hydrate(room: RoomState): void {
 
 function connectRoom(type: 'create_room' | 'join_room'): void {
   roomError.value = '';
+  firstTurnResult.value = '';
   undoRequestPending.value = false;
   incomingUndoRequest.value = false;
   socket?.close();
@@ -406,9 +411,23 @@ function connectRoom(type: 'create_room' | 'join_room'): void {
       roomIdInput.value = message.roomId;
     } else if (message.type === 'room_state' || message.type === 'game_started') {
       roomState.value = message.state;
+      playerId.value = message.state.playerId;
+      if (message.state.playerCount === 2 && roomError.value === '另一位玩家已离开') {
+        roomError.value = '';
+      }
       undoRequestPending.value = false;
       incomingUndoRequest.value = false;
+      if (!message.state.gameState) {
+        state.value = null;
+      }
       hydrate(message.state);
+    } else if (message.type === 'first_turn_result') {
+      const outcome = message.outcome === 'heads' ? '正面' : '反面';
+      firstTurnResult.value = message.winnerPlayerId === null
+        ? `结果为${outcome}，本轮无人胜出，请重新猜先`
+        : message.winnerPlayerId === playerId.value
+          ? `结果为${outcome}，你猜先获胜，由你先走`
+          : `结果为${outcome}，对手猜先获胜，由对手先走`;
     } else if (message.type === 'undo_requested') {
       incomingUndoRequest.value = true;
     } else if (message.type === 'undo_result') {
@@ -420,6 +439,7 @@ function connectRoom(type: 'create_room' | 'join_room'): void {
       undoRequestPending.value = false;
     } else if (message.type === 'player_left') {
       roomError.value = '另一位玩家已离开';
+      firstTurnResult.value = '';
       undoRequestPending.value = false;
       incomingUndoRequest.value = false;
       state.value = null;
@@ -439,6 +459,15 @@ function clearRoomId(): void {
   roomError.value = '';
 }
 
+// 复制当前房间号。
+async function copyRoomId(): Promise<void> {
+  await navigator.clipboard.writeText(roomIdInput.value);
+  copyRoomFeedback.value = '已复制';
+  window.setTimeout(() => {
+    copyRoomFeedback.value = '';
+  }, 1500);
+}
+
 // 由房主向服务端发送开始联机对局请求。
 function startNetworkGame(): void {
   if (socket?.readyState !== WebSocket.OPEN) {
@@ -446,6 +475,15 @@ function startNetworkGame(): void {
     return;
   }
   socket.send(JSON.stringify({ type: 'start_game' }));
+}
+
+// 提交本轮猜先选择。
+function submitFirstTurnGuess(guess: 'heads' | 'tails'): void {
+  if (socket?.readyState !== WebSocket.OPEN || roomState.value?.status !== 'guessing' || roomState.value.guessSubmitted) {
+    return;
+  }
+  firstTurnResult.value = '';
+  socket.send(JSON.stringify({ type: 'guess_first_turn', guess }));
 }
 
 // 判断某个位置是否为当前移动提示点。
@@ -502,9 +540,25 @@ function alive(owner: Owner): number {
           </div>
         </div>
         <div v-else class="room-status">
-          <p>房间号：<b>{{ roomIdInput }}</b></p>
+          <p class="room-id-line">
+            <span>房间号：<b>{{ roomIdInput }}</b></span>
+            <button class="copy-room-btn" type="button" aria-label="复制房间号" title="复制房间号" @click="copyRoomId">
+              <span class="copy-room-icon" aria-hidden="true"></span>
+            </button>
+            <span v-if="copyRoomFeedback" class="copy-room-feedback">{{ copyRoomFeedback }}</span>
+          </p>
           <p>{{ roomState.playerCount }}/2 位玩家已进入</p>
           <button v-if="roomState.status === 'ready' && playerId === 0" class="btn btn-primary" @click="startNetworkGame">开始对局</button>
+          <template v-else-if="roomState.status === 'guessing'">
+            <p>猜先第 {{ roomState.guessRound }} 轮</p>
+            <div class="guess-actions">
+              <button class="btn" :disabled="roomState.guessSubmitted" @click="submitFirstTurnGuess('heads')">猜正面</button>
+              <button class="btn" :disabled="roomState.guessSubmitted" @click="submitFirstTurnGuess('tails')">猜反面</button>
+            </div>
+            <p v-if="roomState.guessSubmitted">已提交，等待对手选择</p>
+            <p v-else-if="roomState.opponentGuessSubmitted">对手已提交，请选择</p>
+            <p v-if="firstTurnResult" class="room-error">{{ firstTurnResult }}</p>
+          </template>
           <p v-else>等待{{ roomState.status === 'waiting' ? '另一位玩家加入' : '房主开始对局' }}</p>
           <button class="btn" @click="leaveRoom">退出房间</button>
         </div>
@@ -629,6 +683,7 @@ function alive(owner: Owner): number {
     <!-- 右侧回合、吃子和操作面板。 -->
     <aside class="panel">
       <h2 class="panel-title">暗兽棋</h2>
+      <p v-if="mode === 'lan'" class="network-player">你是玩家 {{ (playerId ?? 0) + 1 }}{{ playerId === 0 ? '（房主）' : '' }}</p>
       <div class="turn-info">
         <span
           class="turn-dot"

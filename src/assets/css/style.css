@@ -289,6 +289,39 @@ body {
 .room-error {
   margin: 0;
 }
+/* 房间号和复制按钮 */
+.room-id-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.copy-room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--wood-border);
+  cursor: pointer;
+}
+.copy-room-btn:hover {
+  color: var(--ink);
+}
+.copy-room-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: #2b2b2b;
+  mask: url('/home/mingcute--copy-2-line.svg') center / contain no-repeat;
+  -webkit-mask: url('/home/mingcute--copy-2-line.svg') center / contain no-repeat;
+}
+.copy-room-feedback {
+  color: var(--green, #4b7f52);
+  font-size: 12px;
+}
 /* 房间错误提示 */
 .room-error {
   color: var(--red);
@@ -555,6 +588,12 @@ body {
   font-size: 36px;
   margin: 0 0 18px;
   letter-spacing: 6px;
+}
+.network-player {
+  margin: -10px 0 14px;
+  color: var(--wood-border);
+  text-align: center;
+  font-size: 14px;
 }
 /* 回合信息 */
 .turn-info {
