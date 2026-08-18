@@ -167,7 +167,7 @@ const turnText = computed(() => {
       : id === state.value.aiPlayerId
         ? 'AI'
         : '你';
-  return `${player}（${owner == null ? '未确定' : owner === 1 ? '红方' : '黑方'}）行棋`;
+  return `${player}（${owner == null ? '未确定' : owner === 1 ? '红方' : '蓝方'}）行棋`;
 });
 
 // 生成当前操作提示。
@@ -644,7 +644,7 @@ function alive(owner: Owner): number {
       <div class="captured-section">
         <div v-for="owner in [2, 1] as Owner[]" :key="owner" class="captured-block">
           <div class="captured-label">
-            <span><i class="loss-dot" :class="owner === 1 ? 'red' : 'black'"></i>{{ owner === 1 ? '红方' : '黑方' }}损失</span>
+            <span><i class="loss-dot" :class="owner === 1 ? 'red' : 'black'"></i>{{ owner === 1 ? '红方' : '蓝方' }}损失</span>
           </div>
           <div class="captured-list">
             <span
@@ -706,7 +706,7 @@ function alive(owner: Owner): number {
   <!-- 结算遮罩和重新开始操作。 -->
   <div v-if="state?.gameOver" class="overlay">
     <div class="card over-card">
-      <h2 class="winner-text" :class="state.winner === 1 ? 'red' : 'black'">{{ state.winner === 1 ? '红方胜' : '黑方胜' }}</h2>
+      <h2 class="winner-text" :class="state.winner === 1 ? 'red' : 'black'">{{ state.winner === 1 ? '红方胜' : '蓝方胜' }}</h2>
       <div class="btn-group">
         <button class="btn btn-primary" @click="playAgain">再来一局</button>
         <button class="btn" @click="menu">返回菜单</button>
