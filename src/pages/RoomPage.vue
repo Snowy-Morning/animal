@@ -95,17 +95,29 @@ function send(message: object): void {
 }
 
 function handleRoomState(room: RoomState): void {
+  const previousStatus = roomState.value?.status;
+  const restartingFinishedGame = previousStatus === 'finished' && room.status === 'guessing' && room.guessRound === 1;
   roomState.value = room;
   playerId.value = room.playerId;
+
+  if (restartingFinishedGame) {
+    firstTurnResult.value = '';
+  }
 
   if (room.playerCount === 2 && roomError.value === '另一位玩家已离开') {
     roomError.value = '';
   }
   if (room.status === 'waiting' || room.status === 'ready') {
     firstTurnResult.value = '';
+    undoPending.value = false;
+    incomingUndo.value = false;
+    restartPending.value = false;
   }
   if (room.status === 'guessing') {
     roomError.value = '';
+    undoPending.value = false;
+    incomingUndo.value = false;
+    restartPending.value = false;
   }
 
   hydrate(room);
@@ -276,7 +288,11 @@ function guess(guessValue: 'heads' | 'tails'): void {
 }
 
 function restart(): void {
-  if (playerId.value === 0) restartPending.value = true;
+  if (playerId.value === 0 || roomState.value?.status === 'finished') {
+    restartPending.value = true;
+  } else {
+    roomError.value = '只有房主可以在对局中重开';
+  }
 }
 
 function confirmRestart(): void {
@@ -434,7 +450,7 @@ onBeforeUnmount(() => {
     </div>
   </div>
 
-  <div v-if="restartPending" class="overlay undo-overlay">
+  <div v-if="restartPending" class="overlay undo-overlay restart-overlay">
     <div class="card undo-card">
       <span class="undo-mark" aria-hidden="true"></span>
       <h2>确认重新开始</h2>

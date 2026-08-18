@@ -730,6 +730,9 @@ body {
 .undo-overlay {
   background: rgba(40, 30, 20, 0.68);
 }
+.restart-overlay {
+  z-index: 110;
+}
 /* 撤销确认卡片 */
 .undo-card {
   width: min(360px, calc(100vw - 40px));

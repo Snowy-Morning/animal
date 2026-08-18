@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -9,6 +9,10 @@ const difficulty = ref(2);
 const roomId = ref('');
 const error = ref('');
 
+watch(mode, () => {
+  error.value = '';
+});
+
 function startGame(): void {
   router.push({ path: '/game', query: { mode: mode.value, catOnly: String(catOnly.value), difficulty: String(difficulty.value) } });
 }
@@ -16,6 +20,7 @@ function createRoom(): void {
   router.push({ path: '/room/new', query: { catOnly: String(catOnly.value) } });
 }
 function joinRoom(): void {
+  error.value = '';
   if (roomId.value.trim().length !== 6) { error.value = '请输入 6 位房间号'; return; }
   router.push(`/room/${roomId.value.trim()}`);
 }

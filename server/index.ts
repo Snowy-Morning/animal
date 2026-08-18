@@ -165,7 +165,10 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
   if (!connection) return reject(socket, '请先创建或加入房间');
   const { room, playerId } = connection;
   if (message.type === 'start_game' || message.type === 'restart_game') {
-    if (playerId !== 0) return reject(socket, '只有房主可以开始或重开');
+    const finished = room.state?.gameOver === true;
+    if (playerId !== 0 && !(message.type === 'restart_game' && finished)) {
+      return reject(socket, '只有房主可以开始或重开');
+    }
     if (!room.clients[1]) return reject(socket, '请等待第二位玩家加入');
     if (message.type === 'start_game' && (room.state || room.firstTurn)) return reject(socket, '游戏已经开始或正在猜先');
     room.state = null;
