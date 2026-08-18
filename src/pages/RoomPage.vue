@@ -101,7 +101,7 @@ function handleRoomState(room: RoomState): void {
   if (room.playerCount === 2 && roomError.value === '另一位玩家已离开') {
     roomError.value = '';
   }
-  if (room.status === 'waiting' || room.status === 'ready' || room.status === 'guessing') {
+  if (room.status === 'waiting' || room.status === 'ready') {
     firstTurnResult.value = '';
   }
   if (room.status === 'guessing') {
