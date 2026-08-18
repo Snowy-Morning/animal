@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 导入 Vue 响应式 API。
 import { computed, ref } from 'vue';
-import type { RoomState, ServerMessage } from './network/protocol';
+import type { RoomState, ServerMessage } from '@/network/protocol';
 
 // 导入规则函数、常量和状态类型。
 import {
@@ -19,10 +19,10 @@ import {
   type Owner,
   type Board,
   type Piece,
-} from './game/rules';
+} from '@/game/rules';
 
 // 导入 AI 动作选择函数。
-import { findBestMove } from './game/ai';
+import { findBestMove } from '@/game/ai';
 
 // 返回动物图标图片地址。
 function classicPieceImage(type: string): string {
@@ -638,12 +638,14 @@ function alive(owner: Owner): number {
   </main>
 
   <!-- 对手悔棋确认。 -->
-  <div v-if="incomingUndoRequest" class="overlay">
-    <div class="card over-card">
-      <h2>对手请求悔棋</h2>
-      <div class="btn-group">
-        <button class="btn btn-primary" @click="respondNetworkUndo(true)">同意</button>
-        <button class="btn" @click="respondNetworkUndo(false)">拒绝</button>
+  <div v-if="incomingUndoRequest" class="overlay undo-overlay">
+    <div class="card undo-card" role="dialog" aria-modal="true" aria-labelledby="undo-title">
+      <span class="undo-mark" aria-hidden="true"></span>
+      <h2 id="undo-title">对手请求悔棋</h2>
+      <p>是否同意撤销对手的上一手棋？</p>
+      <div class="undo-actions">
+        <button class="btn btn-primary" @click="respondNetworkUndo(true)">同意悔棋</button>
+        <button class="btn" @click="respondNetworkUndo(false)">暂不接受</button>
       </div>
     </div>
   </div>

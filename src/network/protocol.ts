@@ -1,4 +1,4 @@
-import type { Action, GameState, Owner, Piece } from '../game/rules';
+import type { Action, GameState, Owner, Piece } from '@/game/rules';
 
 export type ClientMessage =
   | { type: 'create_room'; catOnlyCanCaptureRat: boolean }

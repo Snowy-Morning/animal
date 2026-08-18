@@ -12,7 +12,7 @@ import {
   type GameState,
   type Owner,
   type Piece,
-} from './rules';
+} from '@/game/rules';
 
 // 定义各棋种的静态价值。
 export const PIECE_VALUE: Record<string, number> = {
