@@ -1,8 +1,18 @@
-// 导入 Vue 应用挂载函数。
 import { createApp } from 'vue';
-// 导入根组件。
+import { createRouter, createWebHistory } from 'vue-router';
 import App from '@/App.vue';
-// 导入全局视觉样式。
+import StartPage from '@/pages/StartPage.vue';
+import LocalGamePage from '@/pages/LocalGamePage.vue';
+import RoomPage from '@/pages/RoomPage.vue';
 import '@/assets/css/style.css';
-// 创建并挂载 Vue 应用。
-createApp(App).mount('#app');
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: StartPage },
+    { path: '/game', component: LocalGamePage },
+    { path: '/room/:roomId', component: RoomPage },
+  ],
+});
+
+createApp(App).use(router).mount('#app');
