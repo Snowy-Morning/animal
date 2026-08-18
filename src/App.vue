@@ -24,14 +24,10 @@ import {
 // 导入 AI 动作选择函数。
 import { findBestMove } from './game/ai';
 
-// 返回经典版动物头像图片地址。
+// 返回动物图标图片地址。
 function classicPieceImage(type: string): string {
-  return `/pieces/${type}.png`;
-}
-
-// 判断是否使用 Emoji 显示该棋子。
-function usesEmoji(type: string): boolean {
-  return type === 'leopard';
+  const iconName = type === 'lion' ? 'lion-face' : type;
+  return `/animal/emojione--${iconName}.svg`;
 }
 
 // 保存菜单中的对战模式、吃鼠规则和 AI 难度。
@@ -442,7 +438,10 @@ function alive(owner: Owner): number {
 
       <!-- 对战模式选择。 -->
       <div class="option-group">
-        <div class="option-label">对战模式</div>
+        <div class="option-label">
+          <span class="option-label-icon icon-aiming" aria-hidden="true"></span>
+          对战模式
+        </div>
         <div class="options">
           <label class="radio"><input v-model="mode" type="radio" value="pvp">本地双人对战</label>
           <label class="radio"><input v-model="mode" type="radio" value="pve">人机对战</label>
@@ -452,7 +451,10 @@ function alive(owner: Owner): number {
 
       <!-- 局域网房间操作。 -->
       <div v-if="mode === 'lan'" class="option-group lan-options">
-        <div class="option-label">局域网房间</div>
+        <div class="option-label">
+          <span class="option-label-icon icon-airdrop" aria-hidden="true"></span>
+          局域网房间
+        </div>
         <p class="lan-note">请先在一台电脑上启动联机服务端。</p>
         <div v-if="!roomState" class="lan-actions">
           <button class="btn" @click="connectRoom('create_room')">创建房间</button>
@@ -476,7 +478,10 @@ function alive(owner: Owner): number {
 
       <!-- 吃鼠规则选择。 -->
       <div class="option-group">
-        <div class="option-label">吃鼠规则</div>
+        <div class="option-label">
+          <span class="option-label-icon icon-cookie" aria-hidden="true"></span>
+          吃鼠规则
+        </div>
         <div class="options">
           <label class="radio"><input v-model="catOnly" type="radio" :value="true">只有猫能吃鼠</label>
           <label class="radio"><input v-model="catOnly" type="radio" :value="false">除象外都能吃鼠</label>
@@ -485,7 +490,10 @@ function alive(owner: Owner): number {
 
       <!-- AI 难度选择。 -->
       <div v-if="mode === 'pve'" class="option-group">
-        <div class="option-label">AI 难度</div>
+        <div class="option-label">
+          <span class="option-label-icon icon-ai" aria-hidden="true"></span>
+          AI 难度
+        </div>
         <div class="options">
           <label v-for="level in [1, 2, 3]" :key="level" class="radio">
             <input v-model="difficulty" type="radio" :value="level">
@@ -571,8 +579,7 @@ function alive(owner: Owner): number {
               <div class="piece-inner">
                 <div class="piece-face back"></div>
                 <div class="piece-face front">
-                  <span v-if="usesEmoji(piece.type)" class="piece-icon leopard-emoji">🐆</span>
-                  <img v-else class="piece-icon classic-icon" :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char">
+                  <img class="piece-icon classic-icon" :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char">
                   <span class="piece-name">{{ PIECE_TYPES[piece.type].char }}</span>
                 </div>
               </div>
@@ -608,7 +615,7 @@ function alive(owner: Owner): number {
               :key="piece.id"
               class="cap-piece"
               :class="owner === 1 ? 'red' : 'black'"
-            ><span v-if="usesEmoji(piece.type)" class="leopard-emoji">🐆</span><img v-else :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char"></span>
+            ><img :src="classicPieceImage(piece.type)" :alt="PIECE_TYPES[piece.type].char"></span>
           </div>
           <div class="alive-count">存活 {{ alive(owner) }}</div>
         </div>
