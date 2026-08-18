@@ -476,8 +476,8 @@ function alive(owner: Owner): number {
         <p v-if="roomError" class="room-error">{{ roomError }}</p>
       </div>
 
-      <!-- 吃鼠规则选择。 -->
-      <div class="option-group">
+      <!-- 吃鼠规则选择，仅房主可以设置联机规则。 -->
+      <div v-if="mode !== 'lan' || playerId !== 1" class="option-group">
         <div class="option-label">
           <span class="option-label-icon icon-cookie" aria-hidden="true"></span>
           吃鼠规则
