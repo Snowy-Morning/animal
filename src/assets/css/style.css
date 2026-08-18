@@ -598,15 +598,10 @@ body {
   color: var(--red);
   text-align: center;
   font-size: 36px;
-  margin: 0 0 18px;
+  margin: 0 0 28px;
   letter-spacing: 6px;
 }
-.network-player {
-  margin: -10px 0 14px;
-  color: var(--wood-border);
-  text-align: center;
-  font-size: 14px;
-}
+
 /* 回合信息 */
 .turn-info {
   display: flex;

@@ -95,8 +95,11 @@ function handleRoomState(room: RoomState): void {
   if (room.playerCount === 2 && roomError.value === '另一位玩家已离开') {
     roomError.value = '';
   }
-  if (room.status === 'waiting' || room.status === 'ready') {
+  if (room.status === 'waiting' || room.status === 'ready' || room.status === 'guessing') {
     firstTurnResult.value = '';
+  }
+  if (room.status === 'guessing') {
+    roomError.value = '';
   }
 
   hydrate(room);
@@ -249,6 +252,11 @@ function restart(): void {
 
 function confirmRestart(): void {
   restartPending.value = false;
+  roomError.value = '';
+  firstTurnResult.value = '';
+  undoPending.value = false;
+  incomingUndo.value = false;
+  state.value = null;
   send({ type: 'restart_game' });
 }
 
@@ -334,9 +342,6 @@ onBeforeUnmount(() => {
     <GameBoard :state="state!" :game-version="gameVersion" @cell="clickCell" />
     <aside class="panel">
       <h2 class="panel-title">暗兽棋</h2>
-      <p class="network-player">
-        你是玩家 {{ (playerId ?? 0) + 1 }}{{ playerId === 0 ? '（房主）' : '' }}
-      </p>
       <div class="turn-info">
         <span
           class="turn-dot"
