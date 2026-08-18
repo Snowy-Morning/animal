@@ -293,7 +293,9 @@ body {
 .room-id-line {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  text-align: center;
 }
 .copy-room-btn {
   display: inline-flex;
@@ -321,6 +323,16 @@ body {
 .copy-room-feedback {
   color: var(--green, #4b7f52);
   font-size: 12px;
+}
+/* 猜先按钮组 */
+.guess-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 18px;
+}
+.guess-actions .btn {
+  flex: 1;
+  min-width: 0;
 }
 /* 房间错误提示 */
 .room-error {
