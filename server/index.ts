@@ -29,6 +29,7 @@ type FirstTurnState = {
   guesses: [FirstTurnGuess | null, FirstTurnGuess | null];
 };
 
+// 服务端历史保存完整撤销快照，悔棋时统一恢复棋盘、阵营、回合和吃子记录。
 type ServerHistoryEntry = {
   revertContext: ActionContext;
   previousPlayerId: 0 | 1;
@@ -50,6 +51,7 @@ type Room = {
   undoRequester: 0 | 1 | null;
 };
 
+// 断线后保留席位和 sessionToken 30 秒，超时才按离房清理。
 const RECONNECT_GRACE_MS = 30_000;
 const rooms = new Map<string, Room>();
 const clients = new Map<WebSocket, { room: Room; playerId: 0 | 1 }>();
@@ -69,6 +71,7 @@ function roomId(): string {
   return id;
 }
 
+// 未翻棋子统一脱敏为背面标记，禁止真实棋子信息进入网络载荷。
 function serializePiece(piece: Piece | null): SerializedPiece | null {
   if (!piece) return null;
   return piece.revealed ? { ...piece } : { revealed: false };
@@ -96,6 +99,7 @@ function serializeState(game: GameState): SerializedGameState {
   };
 }
 
+// 广播时为每个连接单独组装其 playerId 和猜先提交视角，棋盘则始终使用脱敏快照。
 function broadcast(room: Room, type: 'room_state' | 'game_started'): void {
   const status = room.state
     ? (room.state.gameOver ? 'finished' : 'playing')
@@ -127,6 +131,7 @@ function reject(socket: WebSocket, message: string): void {
   send(socket, { type: 'error', message });
 }
 
+// 服务端只接受规则引擎生成的候选动作，客户端附带的棋子内容不会直接参与落子。
 function validAction(game: GameState, action: Action, owner: Owner | null): Action | null {
   const legal = getAllLegalActions(game.board, owner);
   if (action.type === 'reveal') {
@@ -211,6 +216,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     broadcast(room, 'room_state');
     return;
   }
+  // 两名玩家都提交猜先后才随机产生结果；平局开启下一轮，胜者决定首手。
   if (message.type === 'guess_first_turn') {
     if (message.guess !== 'heads' && message.guess !== 'tails') return reject(socket, '猜先选择无效');
     if (room.state || !room.firstTurn || !room.clients[1]) return reject(socket, '当前不在猜先阶段');
@@ -242,6 +248,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     broadcast(room, 'game_started');
     return;
   }
+  // 动作落地前记录完整历史并由规则引擎推进回合，所有客户端都只能接收这份权威结果。
   if (message.type === 'action') {
     if (!room.state || room.state.gameOver) return reject(socket, '当前没有进行中的游戏');
     if (room.state.currentPlayerId !== playerId) return reject(socket, '还没轮到你');
@@ -293,6 +300,7 @@ function handleMessage(socket: WebSocket, message: ClientMessage): void {
     send(opponent, { type: 'undo_requested' });
     return;
   }
+  // 同意悔棋时弹出最近历史并恢复所有关联状态；拒绝或新动作都会清除待处理请求。
   if (message.type === 'respond_undo') {
     if (!room.state || room.undoRequester === null) return reject(socket, '当前没有待处理的悔棋请求');
     if (playerId === room.undoRequester) return reject(socket, '不能回应自己的悔棋请求');
@@ -363,6 +371,7 @@ function leaveRoom(socket: WebSocket): void {
   removePlayer(connection.room, connection.playerId);
 }
 
+// 非主动关闭只暂时摘除连接，宽限期内可凭 sessionToken 恢复原席位。
 function disconnect(socket: WebSocket): void {
   const connection = clients.get(socket);
   if (!connection) return;

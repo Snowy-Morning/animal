@@ -134,6 +134,7 @@ function approachScore(
 // 异步选择 AI 的下一步动作。
 export function findBestMove(state: GameState): Promise<Action | null> {
   return new Promise((resolve) => {
+    // 固定延迟让思考状态可见，并保持调用接口异步。
     window.setTimeout(() => {
       const owner = state.playerOwners[state.aiPlayerId];
       // 阵营尚未确定时随机翻开一张牌。

@@ -15,6 +15,7 @@ const positionStyle = (r: number, c: number): Record<string, string> => {
 </script>
 
 <template>
+  <!-- gameVersion 进入棋子 key，重开或权威快照更新时强制重建节点，避免复用旧翻牌动画状态。 -->
   <div class="board-wrap">
     <div class="board-intersection">
       <div v-for="r in 4" :key="`row-${r}`">

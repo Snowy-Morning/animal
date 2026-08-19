@@ -276,6 +276,7 @@ export function getPieceMoves(
     if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) {
       continue;
     }
+    // 豹的对角线若贯穿被占用的大本营则不可通行，其余斜向仍按相邻一步处理。
     const crossesCamp =
       piece.type === 'leopard' &&
       dr !== 0 &&
@@ -501,6 +502,7 @@ export function afterAction(state: GameState, action: Action, tieWinner: Owner |
   state.currentPlayerId = (1 - player) as 0 | 1;
   const playerOwner = state.playerOwners[player];
   const opponentOwner = state.playerOwners[1 - player];
+  // 胜负优先采用“末子同类对死”的主动方特判，再检查行动方是否先灭亡，最后检查对手灭亡或无合法动作。
   const winner = tieWinner ?? (
     playerOwner != null && countAlive(state.board, playerOwner) === 0
       ? opponentOwner

@@ -62,12 +62,14 @@ const image = (type: string): string => {
   return `/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
 };
 
+// 脱敏棋子用固定占位对象承载背面显示，真实阵营和棋种只来自已翻开的权威快照。
 const hydratePiece = (piece: SerializedPiece | null, id: string): GameState['board'][number][number] => {
   if (!piece) return null;
   if ('id' in piece) return { ...piece };
   return { id, owner: 1, type: 'rat', rank: 1, revealed: false };
 };
 
+// 每次收到服务端房间快照都重建本地展示状态，不在客户端维护可被信任的历史。
 const hydrate = (room: RoomState): void => {
   if (!room.gameState) {
     state.value = null;
@@ -188,6 +190,8 @@ const handleMessage = (message: ServerMessage): void => {
   roomError.value = '另一位玩家已离开';
 };
 
+// 优先使用构建配置中的 WebSocket 地址，否则按当前页面协议和主机推导服务端地址。
+// sessionToken 保存在会话存储中，重连时只恢复原席位，不重新创建玩家。
 const connect = (type: 'create_room' | 'join_room'): void => {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const address = import.meta.env.VITE_WEBSOCKET_URL || `${protocol}//${location.hostname}:3000`;
@@ -224,6 +228,7 @@ const connect = (type: 'create_room' | 'join_room'): void => {
   };
 };
 
+// 点击只发送翻牌或移动意图，客户端不直接应用动作，最终结果等待服务端快照广播。
 const clickCell = (r: number, c: number): void => {
   if (!state.value || !humanTurn.value || state.value.gameOver) return;
 
