@@ -13,17 +13,17 @@ watch(mode, () => {
   error.value = '';
 });
 
-function startGame(): void {
+const startGame = (): void => {
   router.push({ path: '/game', query: { mode: mode.value, catOnly: String(catOnly.value), difficulty: String(difficulty.value) } });
-}
-function createRoom(): void {
+};
+const createRoom = (): void => {
   router.push({ path: '/room/new', query: { catOnly: String(catOnly.value) } });
-}
-function joinRoom(): void {
+};
+const joinRoom = (): void => {
   error.value = '';
   if (!/^\d{6}$/.test(roomId.value.trim())) { error.value = '请输入 6 位数字房间号'; return; }
   router.push(`/room/${roomId.value.trim()}`);
-}
+};
 </script>
 
 <template>

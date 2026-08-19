@@ -4,14 +4,14 @@ import { PIECE_TYPES, type GameState } from '@/game/rules';
 defineProps<{ state: GameState; gameVersion: number }>();
 const emit = defineEmits<{ cell: [r: number, c: number] }>();
 
-function classicPieceImage(type: string): string {
+const classicPieceImage = (type: string): string => {
   const iconName = type === 'lion' ? 'lion-face' : type;
   return `/animal/emojione--${iconName}.svg`;
-}
+};
 
-function positionStyle(r: number, c: number): Record<string, string> {
+const positionStyle = (r: number, c: number): Record<string, string> => {
   return { '--r': String(r), '--c': String(c) };
-}
+};
 </script>
 
 <template>

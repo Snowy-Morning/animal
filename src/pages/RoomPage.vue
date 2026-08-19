@@ -33,9 +33,9 @@ let socket: WebSocket | null = null;
 let reconnectTimer: number | null = null;
 let leavingRoom = false;
 
-function sessionKey(roomId: string): string {
+const sessionKey = (roomId: string): string => {
   return `animal-room-session:${roomId}`;
-}
+};
 
 const isPlaying = computed(
   () =>
@@ -58,17 +58,17 @@ const actionHint = computed(() =>
     : '可翻未知牌或移动己方棋子；豹可斜飞，同级相撞对死',
 );
 
-function image(type: string): string {
+const image = (type: string): string => {
   return `/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
-}
+};
 
-function hydratePiece(piece: SerializedPiece | null, id: string): GameState['board'][number][number] {
+const hydratePiece = (piece: SerializedPiece | null, id: string): GameState['board'][number][number] => {
   if (!piece) return null;
   if ('id' in piece) return { ...piece };
   return { id, owner: 1, type: 'rat', rank: 1, revealed: false };
-}
+};
 
-function hydrate(room: RoomState): void {
+const hydrate = (room: RoomState): void => {
   if (!room.gameState) {
     state.value = null;
     return;
@@ -88,18 +88,18 @@ function hydrate(room: RoomState): void {
     selected: null,
     validMoves: [],
   };
-}
+};
 
-function send(message: object): void {
+const send = (message: object): void => {
   if (socket?.readyState !== WebSocket.OPEN) {
     roomError.value = '联机服务端连接已断开';
     return;
   }
 
   socket.send(JSON.stringify(message));
-}
+};
 
-function handleRoomState(room: RoomState): void {
+const handleRoomState = (room: RoomState): void => {
   const previousStatus = roomState.value?.status;
   const startingNewGuess = previousStatus !== 'guessing' && room.status === 'guessing' && room.guessRound === 1;
   roomState.value = room;
@@ -126,9 +126,9 @@ function handleRoomState(room: RoomState): void {
   }
 
   hydrate(room);
-}
+};
 
-function handleMessage(message: ServerMessage): void {
+const handleMessage = (message: ServerMessage): void => {
   if (message.type === 'room_created' || message.type === 'room_joined' || message.type === 'room_resumed') {
     playerId.value = message.playerId;
     roomIdInput.value = message.roomId;
@@ -186,9 +186,9 @@ function handleMessage(message: ServerMessage): void {
   incomingUndo.value = false;
   state.value = null;
   roomError.value = '另一位玩家已离开';
-}
+};
 
-function connect(type: 'create_room' | 'join_room'): void {
+const connect = (type: 'create_room' | 'join_room'): void => {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const address = import.meta.env.VITE_WEBSOCKET_URL || `${protocol}//${location.hostname}:3000`;
   const roomId = roomIdInput.value;
@@ -222,9 +222,9 @@ function connect(type: 'create_room' | 'join_room'): void {
       }, 1000);
     }
   };
-}
+};
 
-function clickCell(r: number, c: number): void {
+const clickCell = (r: number, c: number): void => {
   if (!state.value || !humanTurn.value || state.value.gameOver) return;
 
   const piece = getPieceAt(state.value.board, { r, c });
@@ -250,9 +250,9 @@ function clickCell(r: number, c: number): void {
   } else if (piece?.revealed) {
     select(r, c);
   }
-}
+};
 
-function select(r: number, c: number): void {
+const select = (r: number, c: number): void => {
   if (!state.value) return;
 
   const owner = state.value.playerOwners[state.value.currentPlayerId];
@@ -261,9 +261,9 @@ function select(r: number, c: number): void {
     state.value.selected = { r, c };
     state.value.validMoves = getPieceMoves(state.value.board, r, c, owner);
   }
-}
+};
 
-function leave(): void {
+const leave = (): void => {
   leavingRoom = true;
   if (reconnectTimer !== null) {
     window.clearTimeout(reconnectTimer);
@@ -279,9 +279,9 @@ function leave(): void {
   }
   currentSocket?.close();
   void router.push('/');
-}
+};
 
-async function copy(): Promise<void> {
+const copy = async (): Promise<void> => {
   const value = roomIdInput.value;
   if (!value) return;
 
@@ -308,33 +308,33 @@ async function copy(): Promise<void> {
   window.setTimeout(() => {
     copyFeedback.value = '';
   }, 2000);
-}
+};
 
-function alive(owner: Owner): number {
+const alive = (owner: Owner): number => {
   return roomState.value?.gameState?.aliveCounts?.[owner]
     ?? 8 - (state.value?.captured[owner].length ?? 0);
-}
+};
 
-function start(): void {
+const start = (): void => {
   send({ type: 'start_game' });
-}
+};
 
-function guess(guessValue: 'heads' | 'tails'): void {
+const guess = (guessValue: 'heads' | 'tails'): void => {
   if (!roomState.value?.guessSubmitted) {
     firstTurnResult.value = '';
     send({ type: 'guess_first_turn', guess: guessValue });
   }
-}
+};
 
-function restart(): void {
+const restart = (): void => {
   if (playerId.value === 0 || roomState.value?.status === 'finished') {
     restartPending.value = true;
   } else {
     roomError.value = '只有房主可以在对局中重开';
   }
-}
+};
 
-function confirmRestart(): void {
+const confirmRestart = (): void => {
   restartPending.value = false;
   roomError.value = '';
   firstTurnResult.value = '';
@@ -342,16 +342,16 @@ function confirmRestart(): void {
   incomingUndo.value = false;
   state.value = null;
   send({ type: 'restart_game' });
-}
+};
 
-function undo(): void {
+const undo = (): void => {
   undoPending.value = true;
   send({ type: 'request_undo' });
-}
+};
 
-function respond(accepted: boolean): void {
+const respond = (accepted: boolean): void => {
   send({ type: 'respond_undo', accepted });
-}
+};
 
 onMounted(() => connect(route.params.roomId === 'new' ? 'create_room' : 'join_room'));
 
