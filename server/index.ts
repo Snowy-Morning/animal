@@ -9,12 +9,8 @@ import {
   getLastSameTypeTieWinner,
   getPieceMoves,
   revertAction,
-  type Action,
-  type ActionContext,
-  type GameState,
-  type Owner,
-  type Piece,
 } from '../src/game/rules';
+import type { Action, ActionContext, GameState, Owner, Piece } from '../src/types/game';
 import type {
   ClientMessage,
   FirstTurnGuess,
@@ -22,7 +18,7 @@ import type {
   SerializedGameState,
   SerializedPiece,
   ServerMessage,
-} from '../src/network/protocol';
+} from '../src/types/protocol';
 
 type FirstTurnState = {
   round: number;

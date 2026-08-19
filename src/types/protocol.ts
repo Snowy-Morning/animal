@@ -1,8 +1,7 @@
-import type { Action, GameState, Owner, Piece } from '@/game/rules';
+import type { Action, GameState, Owner, Piece } from './game';
 
 export type FirstTurnGuess = 'heads' | 'tails';
 
-// 客户端消息只表达操作意图，动作合法性与状态变更均由服务端权威校验。
 export type ClientMessage =
   | { type: 'create_room'; catOnlyCanCaptureRat: boolean }
   | { type: 'join_room'; roomId: string }
@@ -15,7 +14,6 @@ export type ClientMessage =
   | { type: 'respond_undo'; accepted: boolean }
   | { type: 'leave_room' };
 
-// 未翻开的棋子仅传递背面状态，避免泄露 id、阵营、棋种和等级。
 export type HiddenPiece = {
   revealed: false;
 };
@@ -44,7 +42,6 @@ export type SerializedGameState = {
   lastRevealedOwner: Owner | null;
 };
 
-// 房间状态覆盖等待入场、可开始、猜先、对局中和已结束五个阶段。
 export type RoomStatus = 'waiting' | 'ready' | 'guessing' | 'playing' | 'finished';
 
 export type RoomState = {

@@ -9,12 +9,8 @@ import {
   isCamp,
   revertAction,
   ROWS,
-  type Action,
-  type Board,
-  type GameState,
-  type Owner,
-  type Piece,
 } from '@/game/rules';
+import type { Action, Board, GameState, Owner, Piece } from '@/types/game';
 
 // 定义各棋种的静态价值。
 export const PIECE_VALUE: Record<string, number> = {

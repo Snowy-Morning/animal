@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PIECE_TYPES, type GameState } from '@/game/rules';
+import { PIECE_TYPES } from '@/game/rules';
+import type { GameState } from '@/types/game';
 
 defineProps<{ state: GameState; gameVersion: number }>();
 const emit = defineEmits<{ cell: [r: number, c: number] }>();

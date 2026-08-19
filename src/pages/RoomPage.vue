@@ -2,14 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import GameBoard from '@/components/GameBoard.vue';
-import {
-  getPieceAt,
-  getPieceMoves,
-  PIECE_TYPES,
-  type GameState,
-  type Owner,
-} from '@/game/rules';
-import type { RoomState, SerializedPiece, ServerMessage } from '@/network/protocol';
+import { getPieceAt, getPieceMoves, PIECE_TYPES } from '@/game/rules';
+import type { GameState, Owner } from '@/types/game';
+import type { RoomState, SerializedPiece, ServerMessage } from '@/types/protocol';
 
 const route = useRoute();
 const router = useRouter();
@@ -92,6 +87,7 @@ const hydrate = (room: RoomState): void => {
   };
 };
 
+// 所有联机请求统一从这里发送，确保连接未建立或已断开时不会调用 socket.send。
 const send = (message: object): void => {
   if (socket?.readyState !== WebSocket.OPEN) {
     roomError.value = '联机服务端连接已断开';
@@ -101,6 +97,7 @@ const send = (message: object): void => {
   socket.send(JSON.stringify(message));
 };
 
+// 处理房间状态更新，包括游戏开始、猜先结果、玩家离开等。
 const handleRoomState = (room: RoomState): void => {
   const previousStatus = roomState.value?.status;
   const startingNewGuess = previousStatus !== 'guessing' && room.status === 'guessing' && room.guessRound === 1;
@@ -130,6 +127,7 @@ const handleRoomState = (room: RoomState): void => {
   hydrate(room);
 };
 
+// 处理服务端消息，包括房间状态更新、游戏开始、猜先结果、玩家离开等。
 const handleMessage = (message: ServerMessage): void => {
   if (message.type === 'room_created' || message.type === 'room_joined' || message.type === 'room_resumed') {
     playerId.value = message.playerId;
@@ -257,6 +255,7 @@ const clickCell = (r: number, c: number): void => {
   }
 };
 
+// 点击棋盘格子时触发，根据当前选中状态执行移动或翻牌操作。
 const select = (r: number, c: number): void => {
   if (!state.value) return;
 
@@ -268,6 +267,7 @@ const select = (r: number, c: number): void => {
   }
 };
 
+// 玩家主动离开房间，触发重连机制。
 const leave = (): void => {
   leavingRoom = true;
   if (reconnectTimer !== null) {
@@ -286,6 +286,7 @@ const leave = (): void => {
   void router.push('/');
 };
 
+// 复制房间 ID到剪贴板。
 const copy = async (): Promise<void> => {
   const value = roomIdInput.value;
   if (!value) return;
@@ -315,15 +316,18 @@ const copy = async (): Promise<void> => {
   }, 2000);
 };
 
+// 计算当前玩家存活的棋子数量。
 const alive = (owner: Owner): number => {
   return roomState.value?.gameState?.aliveCounts?.[owner]
     ?? 8 - (state.value?.captured[owner].length ?? 0);
 };
 
+// 开始游戏，发送开始游戏意图。
 const start = (): void => {
   send({ type: 'start_game' });
 };
 
+// 猜先，发送猜先意图。
 const guess = (guessValue: 'heads' | 'tails'): void => {
   if (!roomState.value?.guessSubmitted) {
     firstTurnResult.value = '';
@@ -331,6 +335,7 @@ const guess = (guessValue: 'heads' | 'tails'): void => {
   }
 };
 
+// 重开游戏，发送重开游戏意图。
 const restart = (): void => {
   if (playerId.value === 0 || roomState.value?.status === 'finished') {
     restartPending.value = true;
@@ -339,6 +344,7 @@ const restart = (): void => {
   }
 };
 
+// 确认重开游戏，发送重开游戏意图。
 const confirmRestart = (): void => {
   restartPending.value = false;
   roomError.value = '';
@@ -349,11 +355,13 @@ const confirmRestart = (): void => {
   send({ type: 'restart_game' });
 };
 
+// 请求撤销，发送撤销意图。
 const undo = (): void => {
   undoPending.value = true;
   send({ type: 'request_undo' });
 };
 
+// 响应撤销，发送撤销响应。
 const respond = (accepted: boolean): void => {
   send({ type: 'respond_undo', accepted });
 };

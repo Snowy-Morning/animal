@@ -23,97 +23,22 @@ export const PIECE_TYPES = {
   rat: { rank: 1, char: '鼠' },
 } as const;
 
-// 定义棋子、位置和动作相关类型。
-export type PieceType = keyof typeof PIECE_TYPES;
-export type Owner = 1 | 2;
-
-export interface Piece {
-  id: string;
-  owner: Owner;
-  type: PieceType;
-  rank: number;
-  revealed: boolean;
-}
-
-export interface Position {
-  r: number;
-  c: number;
-  camp?: boolean;
-}
+import type {
+  Action,
+  ActionContext,
+  Board,
+  GameState,
+  HistoryEntry,
+  MoveAction,
+  MoveOutcome,
+  Owner,
+  Piece,
+  PieceType,
+  Position,
+  RevealAction,
+} from '@/types/game';
 
 // 棋盘数组额外保存营位棋子和吃鼠规则。
-export type Board = (Piece | null)[][] & {
-  camp: Piece | null;
-  catOnlyCanCaptureRat?: boolean;
-};
-
-export type MoveOutcome = 'move' | 'eat' | 'tie';
-
-export interface RevealAction {
-  type: 'reveal';
-  r: number;
-  c: number;
-  piece: Piece;
-}
-
-export interface MoveAction {
-  type: 'move';
-  from: Position;
-  to: Position;
-  capture: Piece | null;
-  outcome: MoveOutcome;
-}
-
-export type Action = RevealAction | MoveAction;
-
-// 保存动作撤销所需的上下文。
-export interface ActionContext {
-  info:
-    | {
-        type: 'reveal';
-        r: number;
-        c: number;
-        wasRevealed: boolean;
-        revealedOwner: Owner;
-      }
-    | {
-        type: 'move';
-        outcome: MoveOutcome;
-        from: Position;
-        to: Position;
-        mover: Piece;
-        target: Piece | null;
-      };
-}
-
-// 保存完整的游戏状态和历史记录。
-export interface GameState {
-  board: Board;
-  playerOwners: [Owner | null, Owner | null];
-  currentPlayerId: 0 | 1;
-  mode: 'pvp' | 'pve';
-  aiPlayerId: 0 | 1;
-  aiDepth: number;
-  catOnlyCanCaptureRat: boolean;
-  turnCount: number;
-  history: HistoryEntry[];
-  captured: Record<Owner, Piece[]>;
-  selected: Position | null;
-  validMoves: MoveAction[];
-  gameOver: boolean;
-  winner: Owner | null;
-  lastRevealedOwner: Owner | null;
-}
-
-export interface HistoryEntry {
-  action: Action;
-  revertCtx: ActionContext;
-  prevPlayerId: 0 | 1;
-  prevPlayerOwners: [Owner | null, Owner | null];
-  prevTurn: number;
-  captured: { piece: Piece; owner: Owner }[];
-  prevLastRevealedOwner: Owner | null;
-}
 
 // 判断坐标是否为中央营位。
 export function isCamp(r: number, c: number): boolean {
