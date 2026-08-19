@@ -25,6 +25,7 @@ const state = ref(createState(mode, 1, difficulty, catOnly));
 const gameVersion = ref(0);
 const animating = ref(false);
 const aiThinking = ref(false);
+const panelCollapsed = ref(false);
 
 // 本地双人始终允许当前玩家操作；人机模式仅在人类回合开放棋盘交互。
 const humanTurn = computed(
@@ -218,7 +219,19 @@ const alive = (owner: Owner): number => countAlive(state.value.board, owner);
   <main class="game-screen">
     <GameBoard :state="state" :game-version="gameVersion" @cell="clickCell" />
 
-    <aside class="panel">
+    <aside class="panel" :class="{ 'is-collapsed': panelCollapsed }">
+      <button
+        class="panel-toggle"
+        type="button"
+        :aria-expanded="!panelCollapsed"
+        :aria-label="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
+        @click="panelCollapsed = !panelCollapsed"
+      >
+        <img
+          :src="panelCollapsed ? '/index/hugeicons--expand.svg' : '/index/hugeicons--collapse.svg'"
+          :alt="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
+        >
+      </button>
       <h2 class="panel-title">暗兽棋</h2>
       <div class="turn-info">
         <span

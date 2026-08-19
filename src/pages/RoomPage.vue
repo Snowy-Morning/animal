@@ -23,6 +23,7 @@ const copyFeedback = ref('');
 const undoPending = ref(false);
 const incomingUndo = ref(false);
 const restartPending = ref(false);
+const panelCollapsed = ref(false);
 const gameVersion = ref(0);
 let socket: WebSocket | null = null;
 let reconnectTimer: number | null = null;
@@ -439,7 +440,19 @@ onBeforeUnmount(() => {
 
   <main v-else class="game-screen">
     <GameBoard :state="state!" :game-version="gameVersion" @cell="clickCell" />
-    <aside class="panel">
+    <aside class="panel" :class="{ 'is-collapsed': panelCollapsed }">
+      <button
+        class="panel-toggle"
+        type="button"
+        :aria-expanded="!panelCollapsed"
+        :aria-label="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
+        @click="panelCollapsed = !panelCollapsed"
+      >
+        <img
+          :src="panelCollapsed ? '/index/hugeicons--expand.svg' : '/index/hugeicons--collapse.svg'"
+          :alt="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
+        >
+      </button>
       <h2 class="panel-title">暗兽棋</h2>
       <div class="turn-info">
         <span
