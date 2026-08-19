@@ -74,7 +74,7 @@ body {
 }
 /* 标题副文本 */
 .subtitle {
-  margin: 6px 0 28px;
+  margin: 14px 0 18px;
   color: var(--wood-border);
   letter-spacing: 6px;
   font-size: 14px;
