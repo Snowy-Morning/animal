@@ -183,8 +183,12 @@ AI 难度对应不同搜索配置入口，目前前端提供简单、中等、�
 ```text
 animal/
 ├─ public/
-│  ├─ logo.svg              # 页面图标资源
-│  └─ pieces/               # 动物棋子图片
+│  └─ assets/images/        # 生产环境静态图片和图标
+│     ├─ animal/            # 动物图标
+│     ├─ home/              # 首页图标
+│     ├─ index/             # 棋盘控制图标
+│     ├─ pieces/            # 动物棋子图片
+│     └─ logo.svg           # 页面图标资源
 ├─ server/
 │  └─ index.ts              # WebSocket 房间和联机对局服务
 ├─ src/
@@ -229,3 +233,18 @@ pnpm build
 ```
 
 构建产物输出到 `dist/` 目录。当前项目的 WebSocket 服务端仍需单独启动，生产环境部署时需要将前端静态资源和 `server/index.ts` 分开部署，并根据实际域名、端口和代理配置调整联机连接地址。
+
+构建后的前端目录按用途分组：
+
+```text
+dist/
+├─ index.html
+└─ assets/
+   ├─ js/                 # JavaScript bundle
+   ├─ css/                # CSS bundle
+   └─ images/             # 图片、图标和 favicon
+      ├─ animal/
+      ├─ home/
+      ├─ index/
+      └─ pieces/
+```

@@ -55,7 +55,7 @@ const actionHint = computed(() =>
 );
 
 const image = (type: string): string => {
-  return `/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
+  return `/assets/images/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
 };
 
 // 脱敏棋子用固定占位对象承载背面显示，真实阵营和棋种只来自已翻开的权威快照。
@@ -449,7 +449,7 @@ onBeforeUnmount(() => {
         @click="panelCollapsed = !panelCollapsed"
       >
         <img
-          :src="panelCollapsed ? '/index/hugeicons--expand.svg' : '/index/hugeicons--collapse.svg'"
+          :src="panelCollapsed ? '/assets/images/index/hugeicons--expand.svg' : '/assets/images/index/hugeicons--collapse.svg'"
           :alt="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
         >
       </button>

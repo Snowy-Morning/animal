@@ -124,22 +124,22 @@ body {
 
 /* 瞄准图标 */
 .icon-aiming {
-  --icon: url('/home/mingcute--aiming-line.svg');
+  --icon: url('/assets/images/home/mingcute--aiming-line.svg');
 }
 
 /* 饼干图标 */
 .icon-cookie {
-  --icon: url('/home/mingcute--cookie-line.svg');
+  --icon: url('/assets/images/home/mingcute--cookie-line.svg');
 }
 
 /* AI 图标 */
 .icon-ai {
-  --icon: url('/home/mingcute--ai-line.svg');
+  --icon: url('/assets/images/home/mingcute--ai-line.svg');
 }
 
 /* 空投图标 */
 .icon-airdrop {
-  --icon: url('/home/mingcute--airdrop-line.svg');
+  --icon: url('/assets/images/home/mingcute--airdrop-line.svg');
 }
 
 /* 选项列表 */
@@ -362,8 +362,8 @@ body {
   width: 16px;
   height: 16px;
   background-color: #2b2b2b;
-  mask: url('/home/mingcute--copy-2-line.svg') center / contain no-repeat;
-  -webkit-mask: url('/home/mingcute--copy-2-line.svg') center / contain no-repeat;
+  mask: url('/assets/images/home/mingcute--copy-2-line.svg') center / contain no-repeat;
+  -webkit-mask: url('/assets/images/home/mingcute--copy-2-line.svg') center / contain no-repeat;
 }
 
 .copy-room-feedback {
@@ -1069,8 +1069,8 @@ body {
   position: absolute;
   inset: 8px;
   background-color: currentColor;
-  -webkit-mask: url('/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
-  mask: url('/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
+  -webkit-mask: url('/assets/images/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
+  mask: url('/assets/images/index/mingcute--cube-3d-line.svg') center / contain no-repeat;
 }
 
 /* 撤销确认标题 */

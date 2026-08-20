@@ -55,7 +55,7 @@ const actionHint = computed(() =>
 
 // 生成棋子图片 URL。
 const classicPieceImage = (type: string): string =>
-  `/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
+  `/assets/images/animal/emojione--${type === 'lion' ? 'lion-face' : type}.svg`;
 
 // 查找目标格子是否有有效移动。
 const moveAt = (r: number, c: number): MoveAction | undefined =>
@@ -228,7 +228,7 @@ const alive = (owner: Owner): number => countAlive(state.value.board, owner);
         @click="panelCollapsed = !panelCollapsed"
       >
         <img
-          :src="panelCollapsed ? '/index/hugeicons--expand.svg' : '/index/hugeicons--collapse.svg'"
+          :src="panelCollapsed ? '/assets/images/index/hugeicons--expand.svg' : '/assets/images/index/hugeicons--collapse.svg'"
           :alt="panelCollapsed ? '展开状态栏' : '折叠状态栏'"
         >
       </button>

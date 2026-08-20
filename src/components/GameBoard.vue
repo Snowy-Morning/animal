@@ -7,7 +7,7 @@ const emit = defineEmits<{ cell: [r: number, c: number] }>();
 
 const classicPieceImage = (type: string): string => {
   const iconName = type === 'lion' ? 'lion-face' : type;
-  return `/animal/emojione--${iconName}.svg`;
+  return `/assets/images/animal/emojione--${iconName}.svg`;
 };
 
 const positionStyle = (r: number, c: number): Record<string, string> => {
